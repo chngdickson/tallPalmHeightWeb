@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-File Upload</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 800px;
+            padding: 35px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        p {
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .upload-container {
+            border: 2px dashed #3498db;
+            border-radius: 12px;
+            padding: 35px 20px;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+            position: relative;
+        }
+        
+        .upload-container:hover, .upload-container.dragover {
+            background-color: #e1f0fa;
+            border-color: #2980b9;
+        }
+        
+        .upload-icon {
+            font-size: 60px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            margin-bottom: 20px;
+            color: #34495e;
+        }
+        
+        .browse-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .browse-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .selected-files {
+            text-align: left;
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .selected-files h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        .file-item:hover {
+            background-color: #e8f4fc;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: #3498db;
+            font-size: 20px;
+        }
+        
+        .file-details {
+            flex: 1;
+        }
+        
+        .file-name {
+            color: #2c3e50;
+            font-weight: 500;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+        
+        .file-size {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .file-remove {
+            color: #e74c3c;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .file-remove:hover {
+            background-color: #ffece8;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .upload-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-top: 20px;
+            display: none;
+            width: 100%;
+        }
+        
+        .upload-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+        
+        .upload-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .upload-status {
+            margin: 15px 0;
+            font-weight: 500;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        
+        .uploaded-files {
+            text-align: left;
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .uploaded-files h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .success {
+            background-color: #2ecc71;
+        }
+        
+        .error {
+            background-color: #e74c3c;
+        }
+        
+        .summary {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+        
+        .summary-item {
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #3498db;
+        }
+        
+        .summary-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        footer {
+            margin-top: 30px;
+            color: #95a5a6;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+            
+            .upload-container {
+                padding: 25px 15px;
+            }
+            
+            .file-name {
+                max-width: 150px;
+            }
+            
+            .summary {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Multi-File Upload</h1>
+        <p>Upload multiple files at once - documents, images, videos, archives, and more. Maximum file size: 100MB per file.</p>
+        
+        <div class="upload-container" id="drop-zone">
+            <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <p class="upload-text">Drag & drop your files here or click to browse</p>
+            <button class="browse-btn" id="browse-btn">
+                <i class="fas fa-folder-open"></i> Select Files
+            </button>
+            <input type="file" id="file-input" multiple>
+        </div>
+        
+        <div class="selected-files" id="selected-files">
+            <h3>Selected Files <span id="files-count">(0)</span></h3>
+            <div class="file-list" id="file-list">
+                <!-- File items will be added here dynamically -->
+            </div>
+            
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-value" id="total-files">0</div>
+                    <div class="summary-label">Total Files</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="total-size">0 MB</div>
+                    <div class="summary-label">Total Size</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="upload-btn" id="upload-btn">
+            <i class="fas fa-upload"></i> Upload All Files
+        </button>
+        
+        <div class="uploaded-files" id="uploaded-files">
+            <h3>Uploaded Files</h3>
+            <div id="uploaded-files-list"></div>
+        </div>
+        
+        <footer>
+            <p>Note: This is a frontend demonstration. Files are not actually uploaded to any server.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const browseBtn = document.getElementById('browse-btn');
+            const uploadBtn = document.getElementById('upload-btn');
+            const selectedFiles = document.getElementById('selected-files');
+            const fileList = document.getElementById('file-list');
+            const filesCount = document.getElementById('files-count');
+            const totalFiles = document.getElementById('total-files');
+            const totalSize = document.getElementById('total-size');
+            const uploadedFiles = document.getElementById('uploaded-files');
+            const uploadedFilesList = document.getElementById('uploaded-files-list');
+            
+            let files = [];
+            let totalSizeValue = 0;
+            
+            // Open file dialog when clicking the browse button
+            browseBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Handle file selection
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop event handlers
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+            
+            // Handle the upload button click
+            uploadBtn.addEventListener('click', startUpload);
+            
+            function handleFileSelect(e) {
+                handleFiles(e.target.files);
+            }
+            
+            function handleFiles(newFiles) {
+                if (newFiles.length > 0) {
+                    for (let i = 0; i < newFiles.length; i++) {
+                        const file = newFiles[i];
+                        
+                        // Check if file already exists
+                        if (files.some(f => f.name === file.name && f.size === file.size)) {
+                            continue;
+                        }
+                        
+                        // Check file size (max 100MB)
+                        if (file.size > 100 * 1024 * 1024) {
+                            showNotification(`File "${file.name}" exceeds 100MB limit.`, 'error');
+                            continue;
+                        }
+                        
+                        files.push(file);
+                        totalSizeValue += file.size;
+                        
+                        // Create file item UI
+                        const fileItem = createFileItem(file);
+                        fileList.appendChild(fileItem);
+                    }
+                    
+                    updateSummary();
+                    
+                    // Show selected files section
+                    selectedFiles.style.display = 'block';
+                    uploadBtn.style.display = 'block';
+                }
+            }
+            
+            function createFileItem(file) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.dataset.name = file.name;
+                
+                const fileSize = formatFileSize(file.size);
+                const fileIcon = getFileIcon(file.name);
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-icon">
+                            <i class="${fileIcon}"></i>
+                        </div>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${fileSize}</div>
+                            <div class="progress-container">
+                                <div class="progress-bar" id="progress-${file.name}"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="file-remove" data-name="${file.name}">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+                
+                // Add event listener for remove button
+                const removeBtn = fileItem.querySelector('.file-remove');
+                removeBtn.addEventListener('click', () => {
+                    removeFile(file.name);
+                    fileItem.remove();
+                });
+                
+                return fileItem;
+            }
+            
+            function removeFile(fileName) {
+                const fileIndex = files.findIndex(f => f.name === fileName);
+                if (fileIndex !== -1) {
+                    totalSizeValue -= files[fileIndex].size;
+                    files.splice(fileIndex, 1);
+                    updateSummary();
+                    
+                    if (files.length === 0) {
+                        selectedFiles.style.display = 'none';
+                        uploadBtn.style.display = 'none';
+                    }
+                }
+            }
+            
+            function updateSummary() {
+                filesCount.textContent = `(${files.length})`;
+                totalFiles.textContent = files.length;
+                totalSize.textContent = formatFileSize(totalSizeValue);
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' bytes';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+                else return (bytes / 1048576).toFixed(2) + ' MB';
+            }
+            
+            function getFileIcon(fileName) {
+                const extension = fileName.split('.').pop().toLowerCase();
+                
+                if (['pdf'].includes(extension)) return 'far fa-file-pdf';
+                if (['doc', 'docx'].includes(extension)) return 'far fa-file-word';
+                if (['xls', 'xlsx'].includes(extension)) return 'far fa-file-excel';
+                if (['ppt', 'pptx'].includes(extension)) return 'far fa-file-powerpoint';
+                if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension)) return 'far fa-file-archive';
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension)) return 'far fa-image';
+                if (['mp4', 'mov', 'avi', 'wmv', 'flv'].includes(extension)) return 'far fa-file-video';
+                if (['mp3', 'wav', 'ogg', 'flac'].includes(extension)) return 'far fa-file-audio';
+                if (['txt', 'rtf'].includes(extension)) return 'far fa-file-alt';
+                
+                return 'far fa-file';
+            }
+            
+            function startUpload() {
+                if (files.length === 0) return;
+                
+                // Disable the upload button during upload
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                
+                // Upload files one by one
+                uploadFilesSequentially();
+            }
+            
+            function uploadFilesSequentially() {
+                let index = 0;
+                const uploadNext = () => {
+                    if (index >= files.length) {
+                        // All files uploaded
+                        uploadBtn.disabled = false;
+                        uploadBtn.innerHTML = '<i class="fas fa-check"></i> All Files Uploaded!';
+                        setTimeout(() => {
+                            uploadBtn.style.display = 'none';
+                        }, 2000);
+                        return;
+                    }
+                    
+                    const file = files[index];
+                    simulateUpload(file, () => {
+                        index++;
+                        uploadNext();
+                    });
+                };
+                
+                uploadNext();
+            }
+            
+            function simulateUpload(file, callback) {
+                const progressBar = document.getElementById(`progress-${file.name}`);
+                const fileItem = document.querySelector(`.file-item[data-name="${file.name}"]`);
+                const fileNameEl = fileItem.querySelector('.file-name');
+                
+                // Change color to indicate uploading
+                fileNameEl.style.color = '#3498db';
+                
+                // Simulate upload progress
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 10;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        
+                        // Update progress bar
+                        progressBar.style.width = progress + '%';
+                        
+                        // Change color to indicate success
+                        fileNameEl.style.color = '#2ecc71';
+                        
+                        // Add to uploaded files list
+                        addToUploadedFiles(file);
+                        
+                        // Call callback to move to next file
+                        setTimeout(callback, 300);
+                    } else {
+                        // Update progress bar
+                        progressBar.style.width = progress + '%';
+                    }
+                }, 100 + Math.random() * 200);
+            }
+            
+            function addToUploadedFiles(file) {
+                const fileSize = formatFileSize(file.size);
+                const fileIcon = getFileIcon(file.name);
+                
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-icon">
+                            <i class="${fileIcon}"></i>
+                        </div>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${fileSize}</div>
+                        </div>
+                    </div>
+                    <div class="file-remove">
+                        <i class="fas fa-check" style="color: #2ecc71;"></i>
+                    </div>
+                `;
+                
+                uploadedFilesList.appendChild(fileItem);
+                uploadedFiles.style.display = 'block';
+            }
+            
+            function showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                // Show notification
+                setTimeout(() => {
+                    notification.style.opacity = '1';
+                }, 10);
+                
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

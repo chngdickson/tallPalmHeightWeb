@@ -1,0 +1,17 @@
+body {
+  font-family: "Aeonik", Aeonik-Regular, Aeonik-SemiBold,;
+  background-color: var(--bg-color);
+  line-height: 1.6;
+  color: #333;
+  /* Display Flex */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.explanation {
+  background: #e8f4fc;
+  padding: 15px;
+  border-radius: 5px;
+  margin: 1rem 0;
+}

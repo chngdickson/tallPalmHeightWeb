@@ -1,0 +1,7 @@
+
+.hero {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: var(--bg-hero);
+  color: rgb(255, 255, 255);
+}

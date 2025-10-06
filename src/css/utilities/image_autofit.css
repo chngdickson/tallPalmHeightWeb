@@ -1,0 +1,12 @@
+.logo-image {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-image2 {
+  height: 250px;
+  width: auto;
+  object-fit: contain;
+}
+

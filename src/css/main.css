@@ -1,0 +1,24 @@
+@import url('utilities/init.css');
+@import url('bodies/init.css');
+@import url('components/init.css');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+
+/* Main styles */
+:root {
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --secondary-color: #2ecc71;
+    --text-color: var(--pure-black);
+    --text-nav : var(--white);
+    --bg-color: var(--grey1);
+    --bg-hero: var(--grey4);
+    --bg-method: var(--white);
+    --font-primary: "Aeonik";
+    --font-secondary: 'Montserrat', sans-serif;
+    --container-width: 1200px;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 2rem;
+  }
+

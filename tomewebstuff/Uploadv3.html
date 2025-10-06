@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Without innerHTML</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .upload-container {
+            padding: 30px;
+            text-align: center;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .drop-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            margin: 20px 0;
+            background: rgba(52, 152, 219, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .drop-area:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .drop-area i {
+            font-size: 3rem;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .drop-area p {
+            font-size: 1.2rem;
+            margin: 10px 0;
+        }
+        
+        .drop-area span {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: background 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .files-container {
+            padding: 20px;
+        }
+        
+        .file-item {
+            background: white;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: #3498db;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .file-details {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+        
+        .file-size {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .file-remove {
+            color: #e74c3c;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+        
+        .file-remove:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+        
+        .processing-pipeline {
+            padding: 20px;
+            background: #fafafa;
+        }
+        
+        .pipeline-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .pipeline-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .pipeline-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .step-title {
+            width: 100px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .step-progress {
+            flex: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .step-bar {
+            height: 100%;
+            background: #3498db;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .step-percentage {
+            width: 40px;
+            text-align: right;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .notification.error {
+            background: #e74c3c;
+        }
+        
+        .notification.success {
+            background: #2ecc71;
+        }
+        
+        @media (max-width: 768px) {
+            .pipeline-step {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .step-title {
+                width: 100%;
+            }
+            
+            .step-progress {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>File Upload Without innerHTML</h1>
+            <p class="description">Creating file items using DOM manipulation instead of innerHTML</p>
+        </header>
+
+        <div class="upload-container">
+            <div class="drop-area" id="dropArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag & Drop your files here</p>
+                <span>or</span>
+                <button class="btn" id="browseBtn">Browse Files</button>
+            </div>
+        </div>
+
+        <div class="files-container" id="filesContainer">
+            <!-- File items will be added here -->
+        </div>
+    </div>
+
+    <script>
+        // Helper functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getFileIcon(filename) {
+            const extension = filename.split('.').pop().toLowerCase();
+            switch(extension) {
+                case 'pdf':
+                    return 'far fa-file-pdf';
+                case 'doc':
+                case 'docx':
+                    return 'far fa-file-word';
+                case 'xls':
+                case 'xlsx':
+                    return 'far fa-file-excel';
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                case 'gif':
+                    return 'far fa-file-image';
+                case 'zip':
+                case 'rar':
+                    return 'far fa-file-archive';
+                default:
+                    return 'far fa-file';
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // State management
+        let processingActive = false;
+        const files = [];
+
+        function removeFile(filename) {
+            const index = files.findIndex(f => f.name === filename);
+            if (index !== -1) {
+                files.splice(index, 1);
+                showNotification(`File "${filename}" removed`, 'success');
+            }
+        }
+
+        // Main function to create file item without innerHTML
+        function createFileItem(file) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.dataset.name = file.name;
+            
+            const fileSize = formatFileSize(file.size);
+            const fileIcon = getFileIcon(file.name);
+            
+            // Create file header
+            const fileHeader = document.createElement('div');
+            fileHeader.className = 'file-header';
+            
+            // Create file info
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'file-info';
+            
+            // Create file icon
+            const fileIconDiv = document.createElement('div');
+            fileIconDiv.className = 'file-icon';
+            const iconElement = document.createElement('i');
+            iconElement.className = fileIcon;
+            fileIconDiv.appendChild(iconElement);
+            
+            // Create file details
+            const fileDetails = document.createElement('div');
+            fileDetails.className = 'file-details';
+            
+            const fileNameDiv = document.createElement('div');
+            fileNameDiv.className = 'file-name';
+            fileNameDiv.textContent = file.name;
+            
+            const fileSizeDiv = document.createElement('div');
+            fileSizeDiv.className = 'file-size';
+            fileSizeDiv.textContent = fileSize;
+            
+            fileDetails.appendChild(fileNameDiv);
+            fileDetails.appendChild(fileSizeDiv);
+            
+            // Assemble file info
+            fileInfo.appendChild(fileIconDiv);
+            fileInfo.appendChild(fileDetails);
+            
+            // Create remove button
+            const fileRemove = document.createElement('div');
+            fileRemove.className = 'file-remove';
+            fileRemove.dataset.name = file.name;
+            
+            const removeIcon = document.createElement('i');
+            removeIcon.className = 'fas fa-times';
+            fileRemove.appendChild(removeIcon);
+            
+            // Assemble file header
+            fileHeader.appendChild(fileInfo);
+            fileHeader.appendChild(fileRemove);
+            
+            // Create processing pipeline
+            const processingPipeline = document.createElement('div');
+            processingPipeline.className = 'processing-pipeline';
+            
+            const pipelineTitle = document.createElement('div');
+            pipelineTitle.className = 'pipeline-title';
+            pipelineTitle.textContent = 'Processing Pipeline:';
+            
+            const pipelineSteps = document.createElement('div');
+            pipelineSteps.className = 'pipeline-steps';
+            
+            // Create pipeline steps
+            const steps = [
+                { name: 'upload', title: 'Uploading' },
+                { name: 'process', title: 'Processing' },
+                { name: 'store', title: 'Storing' }
+            ];
+            
+            steps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = `pipeline-step ${step.name}-step`;
+                
+                const stepTitle = document.createElement('div');
+                stepTitle.className = 'step-title';
+                stepTitle.textContent = step.title;
+                
+                const stepProgress = document.createElement('div');
+                stepProgress.className = 'step-progress';
+                
+                const stepBar = document.createElement('div');
+                stepBar.className = 'step-bar';
+                stepBar.id = `${step.name}-bar-${file.name}`;
+                
+                stepProgress.appendChild(stepBar);
+                
+                const stepPercentage = document.createElement('div');
+                stepPercentage.className = 'step-percentage';
+                stepPercentage.id = `${step.name}-percent-${file.name}`;
+                stepPercentage.textContent = '0%';
+                
+                stepDiv.appendChild(stepTitle);
+                stepDiv.appendChild(stepProgress);
+                stepDiv.appendChild(stepPercentage);
+                
+                pipelineSteps.appendChild(stepDiv);
+            });
+            
+            // Assemble processing pipeline
+            processingPipeline.appendChild(pipelineTitle);
+            processingPipeline.appendChild(pipelineSteps);
+            
+            // Assemble file item
+            fileItem.appendChild(fileHeader);
+            fileItem.appendChild(processingPipeline);
+            
+            // Add event listener for remove button
+            fileRemove.addEventListener('click', () => {
+                if (processingActive) {
+                    showNotification("Cannot remove files during processing", "error");
+                    return;
+                }
+                removeFile(file.name);
+                fileItem.remove();
+            });
+            
+            return fileItem;
+        }
+
+        // Demo functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropArea = document.getElementById('dropArea');
+            const browseBtn = document.getElementById('browseBtn');
+            const filesContainer = document.getElementById('filesContainer');
+            
+            // Add sample files for demonstration
+            const sampleFiles = [
+                { name: 'document.pdf', size: 1024 * 250 },
+                { name: 'spreadsheet.xlsx', size: 1024 * 512 },
+                { name: 'image.jpg', size: 1024 * 1024 * 2 }
+            ];
+            
+            // Add sample files to the container
+            sampleFiles.forEach(file => {
+                const fileItem = createFileItem(file);
+                filesContainer.appendChild(fileItem);
+            });
+            
+            // Simulate progress for demo files
+            sampleFiles.forEach(file => {
+                simulateProgress(file.name);
+            });
+            
+            // Drop area functionality
+            dropArea.addEventListener('click', () => {
+                addNewFile();
+            });
+            
+            browseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                addNewFile();
+            });
+            
+            function addNewFile() {
+                const newFileNumber = files.length + 1;
+                const newFile = {
+                    name: `new-file-${newFileNumber}.txt`,
+                    size: 1024 * (100 + Math.floor(Math.random() * 900))
+                };
+                
+                const fileItem = createFileItem(newFile);
+                filesContainer.appendChild(fileItem);
+                files.push(newFile);
+                
+                simulateProgress(newFile.name);
+                
+                showNotification(`File "${newFile.name}" added`, 'success');
+            }
+            
+            function simulateProgress(filename) {
+                const steps = ['upload', 'validate', 'process', 'store'];
+                
+                steps.forEach((step, index) => {
+                    setTimeout(() => {
+                        const bar = document.getElementById(`${step}-bar-${filename}`);
+                        const percent = document.getElementById(`${step}-percent-${filename}`);
+                        
+                        let width = 0;
+                        const interval = setInterval(() => {
+                            if (width >= 100) {
+                                clearInterval(interval);
+                                
+                                // Start next step if exists
+                                if (index < steps.length - 1) {
+                                    simulateStep(steps[index + 1], filename);
+                                }
+                            } else {
+                                width += 2;
+                                bar.style.width = `${width}%`;
+                                percent.textContent = `${width}%`;
+                            }
+                        }, 30);
+                    }, index * 2500);
+                });
+            }
+            
+            function simulateStep(step, filename) {
+                const bar = document.getElementById(`${step}-bar-${filename}`);
+                const percent = document.getElementById(`${step}-percent-${filename}`);
+                
+                let width = 0;
+                const interval = setInterval(() => {
+                    if (width >= 100) {
+                        clearInterval(interval);
+                    } else {
+                        width += 2;
+                        bar.style.width = `${width}%`;
+                        percent.textContent = `${width}%`;
+                    }
+                }, 30);
+            }
+        });
+    </script>
+</body>
+</html>
