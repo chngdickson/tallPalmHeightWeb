@@ -1,5 +1,5 @@
 // export function loadUploadComponent() {
-//     fetch('../src/content/components/upload_multi.html')
+//     fetch('./src/content/components/upload_multi.html')
 //         .then(response => response.text())
 //         .then(data => {
 //             document.getElementById('upload-files').innerHTML = data;
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Check file extension
                 const extension = file.name.split('.').pop().toLowerCase();
-                var supportedExtensions = ["las","laz","pcd"];
+                var supportedExtensions = ["las","laz","pcd","pdf","mp4"];
                 if (supportedExtensions.indexOf(extension) < 0) {
                     showNotification(`
                         File Extension ".${extension}" is not supported, 
