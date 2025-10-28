@@ -1,0 +1,55 @@
+    <script>
+        // Helper functions to create the links and spans
+        function updateFileLink(filename, file_link_id) {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.className = 'view-logs2';
+            link.id = '';
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-file file-icon2';
+            
+            const text = document.createTextNode(` ${filename}`);
+            
+            link.appendChild(icon);
+            link.appendChild(text);
+            return link;
+        }
+
+        function updateDownloadLink(url_link, exist) {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.className = 'download-btn';
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-download';
+            
+            const text = document.createTextNode(' Download');
+            
+            link.appendChild(icon);
+            link.appendChild(text);
+            return link;
+        }
+
+        function updateStatusSpan(status) {
+            const span = document.createElement('span');
+            span.className = `status ${status.toLowerCase().replace(' ', '-')}`;
+            span.textContent = status;
+            return span;
+        }
+
+        function updateViewLogsLink() {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.className = 'view-logs2';
+            
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-list';
+            
+            const text = document.createTextNode(' View Logs');
+            
+            link.appendChild(icon);
+            link.appendChild(text);
+            return link;
+        }
+    </script>

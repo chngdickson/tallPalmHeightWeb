@@ -1,7 +1,6 @@
 // Import components
 import { loadHeader } from './bodies/header.js';
 import { loadFooter } from './bodies/footer.js';
-import './components/upload_multi.js';
 
 // Initialize the site
 document.addEventListener('DOMContentLoaded', () => {

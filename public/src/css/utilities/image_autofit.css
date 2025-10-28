@@ -5,8 +5,10 @@
 }
 
 .logo-image2 {
-  height: 250px;
   width: auto;
-  object-fit: contain;
+  height: auto;
+  max-height: 250px;
+  object-fit: scale-down;
+  align-self: flex-end;
 }
 

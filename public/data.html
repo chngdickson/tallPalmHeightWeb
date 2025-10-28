@@ -1,365 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
-    <link href="./src/fonts/fontawesome/css/all.min.css" rel="stylesheet">
-    
-    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background-color: #f5f7fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        
-        .container2 {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .header2 {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: white;
-            padding: 20px 0;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .header-content2 {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-        }
-        
-        h1 {
-            font-size: 28px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .search-box {
-            flex: 1;
-            min-width: 250px;
-            position: relative;
-        }
-        
-        .search-box input {
-            width: 100%;
-            padding: 12px 15px 12px 40px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-        
-        .search-box i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #777;
-        }
-        
-        .filter-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        select {
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background: white;
-            font-size: 14px;
-            min-width: 150px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-        
-        .stats-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            text-align: center;
-        }
-        .stat-card h1 {
-            font-size: 25px;
-            text-align: center;
-            justify-content: center;
-            margin-bottom: 0px;
-        }
-        .stat-card h3 {
-            font-size: 16px;
-            color: #777;
-            margin-bottom: 10px;
-        }
-        
-        .stat-card .value {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2575fc;
-        }
-        
-        .stat-card .trend {
-            font-size: 14px;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-        
-        .trend.up {
-            color: #2ecc71;
-        }
-        
-        .trend.down {
-            color: #e74c3c;
-        }
-        
-        .data-table {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            margin-bottom: 30px;
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 15px 20px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        
-        th {
-            background-color: #f8fafd;
-            font-weight: 600;
-            color: #5278a3;
-            cursor: pointer;
-        }
-        
-        th:hover {
-            background-color: #edf2f7;
-        }
-        
-        tr:last-child td {
-            border-bottom: none;
-        }
-        
-        tr:hover {
-            background-color: #f9fbfd;
-        }
-        tr.active {
-            background: linear-gradient(135deg, #6a11cb 0%, #3a82fd 200%);
-            color: white;
-            border-color: #2575fc;
-        }
-        
-        .status {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .status.completed {
-            background-color: #e6f7ee;
-            color: #2ecc71;
-        }
-        
-        .status.processing {
-            background-color: #ebf3ff;
-            color: #3498db;
-        }
-        
-        .status.error {
-            background-color: #fde8e8;
-            color: #e74c3c;
-        }
-        
-        .download-btn {
-            background: #2575fc;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        
-        .download-btn:hover {
-            background: #1c64e0;
-        }
-        
-        .view-logs2 {
-            color: #2575fc;
-            text-decoration: none;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.2s;
-        }
-        
-        .view-logs2:hover {
-            color: #1c64e0;
-            text-decoration: underline;
-        }
-        
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .pagination button {
-            padding: 8px 15px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .pagination button:hover {
-            background: #f1f5f9;
-        }
-        
-        .pagination button.active {
-            background: #2575fc;
-            color: white;
-            border-color: #2575fc;
-        }
-        
-        .charts {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .chart-container2 {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            margin-bottom: 20px;
-        }
-        
-        .chart-container2 h3 {
-            margin-bottom: 15px;
-            color: #5278a3;
-            font-size: 18px;
-        }
-        
-        .chart {
-            height: 250px;
-            display: flex;
-            align-items: flex-end;
-            gap: 10px;
-            padding-top: 20px;
-            justify-content: center;
-        }
-        
-        .bar {
-            width: 40px;
-            background: linear-gradient(to top, #6a11cb, #2575fc);
-            border-radius: 5px 5px 0 0;
-            position: relative;
-        }
-        
-        .bar-label {
-            position: absolute;
-            bottom: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 12px;
-            color: #777;
-        }
-        
-        @media (max-width: 768px) {
-            .charts {
-                grid-template-columns: 1fr;
-            }
-            
-            .chart {
-                height: 200px;
-            }
-            
-            .bar {
-                width: 30px;
-            }
-        }
-        
-        .export-btn {
-            background: #2575fc;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: auto;
-            transition: background 0.3s;
-        }
-        
-        .export-btn:hover {
-            background: #1c64e0;
-        }
-        
-        .file-icon2 {
-            display: inline-flex;
-            margin-right: 8px;
-            color: #5278a3;
-        }
+        .data-table tr:hover { background-color: #f5f5f5; }
+        .data-table tr.selected { background-color: #e6f3ff; }
+        .data-table tr.disabled { color: #999; cursor: not-allowed; }
     </style>
     <head>
+        <script type="module" src="./src/js/components/data_download_table.js"></script>
         <meta charset="UTF-8">
+        <!-- <link rel="icon" href="./favicon.ico.png" type="image/x-icon"> -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="./src/css/bodies/data_htm.css">
         <link rel="stylesheet" href="./src/css/main.css">
-        <link rel="icon" href="/favicon.ico.png" type="image/x-icon">
         <script type="module" src="./src/js/main.js"></script>
+        <link href="./src/css/fonts/fontawesome/all.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <title>Data Processing Dashboard</title>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('id_table_body').addEventListener('click', async (e) => {
+                    if (e.target.closest('.download-btn')) {
+                        console.log('Download button clicked!');
+                        e.preventDefault();
+                        const fileName = e.target.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+                        const downloadBtn = e.target.closest('.download-btn');
+                        const row = downloadBtn.closest('tr');
+                        const rowId = row.id.replace('row_elem', '');
+                        
+                        // Get the actual download URL from your data
+                        const downloadUrl = downloadBtn.getAttribute('data-url') || 
+                                        downloadBtn.href || 
+                                        downloadBtn.textContent;
+                        await downloadAllBlobsAsZip("tph-files")
+                    }
+                });
+            });
+
+            async function downloadAllBlobsAsZip(containerName = 'your-container-name') {
+                try {
+                    const response = await fetch(`/api/download-zip`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Download failed');
+                    }
+                    
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    // Trigger download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'all-files.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                } catch (error) {
+                    console.error('Download error:', error);
+                }
+            }
+            document.querySelector('.export-btn').addEventListener('click', () => {
+                alert('Data export started. You will receive an email when it is ready.');
+            });
+        </script>
     </head>
 
     <body>
@@ -399,25 +103,25 @@
               
                     </div>
                 </div>
-                <div class="code stat-card">
-                    <h1>Inspecting : file1.laz</h1>
+                <div class="stat-card code">
+                    <h1 id="clicked-file-id">Inspecting : file1.laz</h1>
                 </div>
                 <div class="stats-cards">
                     <div class="stat-card">
-                        <div><img class="logo-image2" src="./src/images/palmFront.png"/></div>
+                        <img id="img-1" class="logo-image2" src="./src/images/palmFront.png"/>
                         <h3>Tree: 1</h3>
                     </div> 
                     
                     <div class="stat-card">
-                        <img class="logo-image2" src="./src/images/palmFront.png"/>
+                        <img id="img-2" class="logo-image2" src="./src/images/palmFront.png"/>
                         <h3>Tree: 2</h3>
                     </div> 
                     <div class="stat-card">
-                        <img class="logo-image2" src="./src/images/palmFront.png"/>
+                        <img id="img-3" class="logo-image2" src="./src/images/palmFront.png"/>
                         <h3>Tree: 3</h3>
                     </div>                    
                     <div class="stat-card">
-                        <img class="logo-image2" src="./src/images/palmFront.png"/>
+                        <img id="img-4" class="logo-image2" src="./src/images/palmFront.png"/>
                         <h3>Tree: 4</h3>
                     </div> 
                 </div>
@@ -426,22 +130,20 @@
                     <div class="chart-container2">
                         <h3>Pointcloud Top View</h3>
                         <div class="chart">
-                            <img class="logo-image2" src="./src/images/test2_coor.png"/>
+                            <img id="img-top" class="logo-image2" src="./src/images/test2_coor.png"/>
                         </div>
                     </div>
                     
                     <div class="stats-cards">
                         <div class="stat-card">
-                            <img class="logo-image2" src="./src/images/palmFront.png"/>
+                            <img id="img-5" class="logo-image2" src="./src/images/palmFront.png"/>
                             <h3>Tree: 5</h3>
                         </div> 
                         
                         <div class="stat-card">
-                            <img class="logo-image2" src="./src/images/palmFront.png"/>
+                            <img id="img-6" class="logo-image2" src="./src/images/palmFront.png"/>
                             <h3>Tree: 6</h3>
                         </div> 
-                        
-
                     </div>
                 </div>
                 
@@ -459,72 +161,25 @@
                                 <th>Trees / GB <i class="fas fa-sort"></i></th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr class="active">
-                                <td>#1089</td>
-                                <td><a href="#" class="view-logs2"><i class="fas fa-file file-icon2"></i> file1.laz</a></td>
-                                <td>XYZ</td>
-                                <td><a href="#" class="download-btn"><i class="fas fa-download"></i> Download</a></td>
-                                <td><span class="status completed">Completed</span></td>
-                                <td><a href="#" class="view-logs2"><i class="fas fa-list"></i> View Logs</a></td>
-                                <td>Today, 11:23 AM</td>
-                                <td>120 / 3.2 GB </td>
-                            </tr>
-                            <tr>
-                              <td>#1089</td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-file file-icon2"></i> file2.pcd</a></td>
-                              <td>Lat/Long</td>
-                              <td><a href="#" class="download-btn"><i class="fas fa-download"></i> Download</a></td>
-                              <td><span class="status completed">Completed</span></td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-list"></i> View Logs</a></td>
-                              <td>Today, 09:15 AM</td>
-                              <td>25 / 0.3 GB </td>
-                            </tr>
-                            <tr>
-                              <td>#1089</td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-file file-icon2"></i> test22.laz</a></td>
-                              <td>Lat/Long</td>
-                              <td><a href="#" class="download-btn"><i class="fas fa-download"></i> Download</a></td>
-                              <td><span class="status error">Processing Error</span></td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-list"></i> View Logs</a></td>
-                              <td>Today, 08:47 AM</td>
-                              <td>40 / 0.9 GB </td>
-                            </tr>
-                            <tr>
-                              <td>#1089</td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-file file-icon2"></i> test91.las</a></td>
-                              <td>XYZ</td>
-                              <td><a href="#" class="download-btn"><i class="fas fa-download"></i> Download</a></td>
-                              <td><span class="status completed">Completed</span></td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-list"></i> View Logs</a></td>
-                              <td>Yesterday, 03:23 PM</td>
-                              <td> 60 / 1.5 GB</td>
-                            </tr>
-                            <tr>
-                              <td>#1089</td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-file file-icon2"></i> fileB.pcd</a></td>
-                              <td>Lat/Long</td>
-                              <td><a href="#" class="download-btn"><i class="fas fa-download"></i> Download</a></td>
-                              <td><span class="status completed">Completed</span></td>
-                              <td><a href="#" class="view-logs2"><i class="fas fa-list"></i> View Logs</a></td>
-                              <td>Yesterday, 01:12 PM</td>
-                              <td>300 / 10.1GB </td>
-                            </tr>
+                        <tbody id="id_table_body" class="data-table">
                         </tbody>
                     </table>
                 </div>
             
-                <div class="pagination">
-                    <button><i class="fas fa-chevron-left"></i></button>
-                    <button class="active">1</button>
-                    <button>2</button>
-                    <button>3</button>
-                    <button>4</button>
-                    <button><i class="fas fa-chevron-right"></i></button>
+                <div id="pagination-container" class="pagination">
+                    <button id="prev-btn" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div id="page-numbers">
+                        <!-- Page buttons will be generated here -->
+                    </div>
+                    <button id="next-btn" disabled>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
         
-            <script>
+            <!-- <script id="Intractive table Sorting">
                 // Simple interactivity for the table sorting
                 document.querySelectorAll('th').forEach(header => {
                     header.addEventListener('click', () => {
@@ -550,30 +205,393 @@
                         rows.forEach(row => tbody.appendChild(row));
                     });
                 });
-                
-                // Export button functionality
-                document.querySelector('.export-btn').addEventListener('click', () => {
-                    alert('Data export started. You will receive an email when it is ready.');
-                });
-                
-                // Download button functionality
-                document.querySelectorAll('.download-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const fileName = e.target.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
-                        alert(`Preparing download for: ${fileName}`);
-                    });
-                });
-                
-                // View logs functionality
-                document.querySelectorAll('.view-logs2').forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const fileId = e.target.closest('tr').querySelector('td:first-child').textContent;
-                        alert(`Showing logs for file ID: ${fileId}`);
-                    });
-                });
             </script>
+
+            <script id="Loading Tablelist">
+                let currentPage = 1;
+                let totalPages = 0;
+
+                // Initialize when page loads
+                document.addEventListener('DOMContentLoaded', function() {
+                    loadPage(1);
+                });
+
+                // Load specific page
+                async function loadPage(page) {           
+                    // Replace with your actual API endpoint
+                    const response = await fetch(`/api/getQueries/${page}`);
+                    if (!response.ok) {
+                        throw new Error(`http Frontend Az Func error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    currentPage = data.pagination.current_page;
+                    totalPages = data.pagination.total_pages;
+                    
+                    renderTable(data.items);
+                    renderPagination(data.pagination);
+                    
+                }
+
+                function renderTable(table_data_json) {
+                    const tbody = document.getElementById('id_table_body');
+                    
+                    // No Result
+                    if (table_data_json.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 8;
+                        cell.textContent = 'No table_data_json found';
+                        row.appendChild(cell);
+                        tbody.appendChild(row);
+                        return;
+                    }
+                    // row.className = 'active';
+                    
+
+                    // Table
+                    for (let i = 0; i < table_data_json.length; i++) {
+                        const row_data = table_data_json[i];
+                        let rowElement = document.getElementById(`row_elem${i}`);
+                        // IF exists
+                        if(rowElement){
+                            // Update
+                            cr8orUpdateRow(row_data, i, update=true);
+                        }
+                        else{
+                            // Create and push
+                            rowElement = cr8orUpdateRow(row_data, i, update=false);
+                            tbody.appendChild(rowElement);
+                        }
+                        rowElement.onclick = (event) => selectRow(event, i, row_data);
+                        
+                        rowElement.classList.remove('active');
+                        // Visual styling based on status
+                        if (row_data.status === "Completed") {
+                            rowElement.classList.remove('disabled');
+                        } else {
+                            rowElement.classList.add('disabled');
+                        }
+                    }
+                    return;
+                }
+
+                function cr8orUpdateRow(table_row_dict, i, update){
+                    // Assume data_dict
+                    const row = document.createElement('tr');
+                    row.id=`row_elem${i}`;
+                    
+                    const myOrder = ["id","filename","coordinates","processed_url","status","logs_url", "date","size"];
+                    const sortedDict = {};
+                    myOrder.forEach(key => {
+                        if (key in table_row_dict) {
+                            sortedDict[key] = table_row_dict[key];
+                        }
+                    });
+                    outerLoop:
+                    for (const [key, value] of Object.entries(sortedDict)) {
+                        let cellContent;
+                        switch (key) {
+                            case "id":
+                                console.log(`id is here ${value}`)
+                                if (update){
+                                    const cell_update = document.getElementById(`td_${key}${i}`);
+                                    if (cell_update){
+                                        cell_update.textContent = `#${value}`;
+                                    }
+                                }
+                                else{
+                                    cellContent = `#${value || '1089'}`;
+                                }
+                                break
+                            case "filename": // UpdateFileLink
+                                if (update){
+                                    const link = document.getElementById(`td_link_${key}${i}`);
+                                    if (link){
+                                        link.innerText = `${value}`;
+                                        link.href = value; // Update URL
+                                        link.setAttribute('data-url', value); // Store URL in data attribute
+                                    }
+                                }
+                                else{
+                                    const link = document.createElement('a');
+                                    const icon = document.createElement('i');
+                                    const text = document.createTextNode(`${value}`);
+                                    link.id = `td_link_${key}${i}`;
+                                    link.href = '#';
+                                    link.className = 'view-logs2';
+                                    icon.className = 'fas fa-file file-icon2';
+                                    
+                                    link.appendChild(icon);
+                                    link.appendChild(text);
+                                    
+                                    cellContent = link;
+                                }
+                                break
+                            case "coordinates":
+                                if (update){
+                                    const cell_update = document.getElementById(`td_${key}${i}`);
+                                    if (cell_update){
+                                        cell_update.textContent = value;
+                                    }
+                                }
+                                else{
+                                    cellContent = value || 'XYZ';
+                                }
+                                break
+                            case "processed_url":
+                                if (update){
+                                    const cell_update = document.getElementById(`td_span_${key}${i}`);
+                                    if (cell_update){
+                                        // cell_update.textContent = value;
+                                        cell_update.href = value; // Update URL
+                                        cell_update.setAttribute('data-url', value); // Store URL in data attribute
+                                    }
+                                }
+                                else{
+                                    const link = document.createElement('a');
+                                    const icon = document.createElement('i');
+                                    const text = document.createTextNode(' Download');
+                                    link.href = value || '#'; // Use actual URL
+                                    link.id = `td_span_${key}${i}`;
+                                    link.className = 'download-btn';
+                                    icon.className = 'fas fa-download';
+                                    link.appendChild(icon);
+                                    link.appendChild(text);
+                                    
+                                    cellContent = link;
+                                }
+                                break;
+                            case "status":
+                                let hasError = table_row_dict.error === "True" || table_row_dict.error === true;
+                                console.log(`error is ${hasError} ${table_row_dict.error}`);
+                                if (update){
+                                    const cell_update = document.getElementById(`td_span_${key}${i}`);
+                                    if (cell_update){
+                                        cell_update.textContent = value;
+                                        if (hasError){
+                                            cell_update.className = `status error`;
+                                            console.log(`error is True ${hasError}`);
+                                        }
+                                        else{
+                                            
+                                            cell_update.className = `status completed`;
+                                        }
+                                    }
+                                }
+                                else{
+                                    const span = document.createElement('span');
+                                    span.id = `td_span_${key}${i}`;
+                                    if (hasError){
+                                        span.className = `status error`;
+                                        console.log(`error is True ${hasError}`);
+                                    }
+                                    else{
+                                        span.className = `status completed`;
+                                    }
+                                    span.textContent = value;
+                                    
+                                    cellContent = span;
+                                }
+                                break;
+                            case "logs_url":
+                                if (update){
+                                    const link = document.getElementById(`td_link_${key}${i}`);
+                                    if (link){
+                                        link.href = `${value}`;
+                                    }
+                                }
+                                else{
+                                    const link = document.createElement('a');
+                                    const icon = document.createElement('i');
+                                    const text = document.createTextNode(' View Logs');
+                                    link.id = `td_link_${key}${i}`;
+                                    link.href = '#';
+                                    link.className = 'view-logs2';
+                                    icon.className = 'fas fa-list';
+                                    link.appendChild(icon);
+                                    link.appendChild(text);
+                                    
+                                    cellContent = link;
+                                }
+                                break;
+                            case "date":
+                                if (update){
+                                    const cell_update = document.getElementById(`td_${key}${i}`);
+                                    if (cell_update){cell_update.textContent = value;}
+                                }
+                                else{
+                                    cellContent = value || 'Today, 11:23 AM';
+                                }
+                                break;
+                            case "size":
+                                if (update){
+                                    const cell_update = document.getElementById(`td_${key}${i}`);
+                                    if (cell_update){cell_update.textContent = value;}
+                                }
+                                else{
+                                    cellContent = value || '120 / 3.2 GB';
+                                }
+                                break;
+                            default:
+                                break;
+                            }
+
+                            if (update === false){
+                                if (cellContent != null){
+                                    const cell = document.createElement('td');
+                                    cell.id = `td_${key}${i}`;
+                                    if (typeof cellContent === 'string') {
+                                        cell.textContent = cellContent;
+                                    } else {
+                                        cell.appendChild(cellContent);
+                                    }
+                                    row.appendChild(cell);
+                                }
+                            } 
+                    }
+                    return row;
+                }
+
+                async function selectRow(event, rowIndex, rowData) {
+                    // Only allow selection if status is "Completed"
+                    if (rowData.status !== "Completed") {
+                        return;
+                    }
+
+                    const h1 = document.getElementById('clicked-file-id');
+                    h1.textContent = `Inspecting : ${rowData.filename}`;
+                    // Remove previous selection
+                    const rows = document.querySelectorAll('#id_table_body tr');
+                    rows.forEach(r => r.classList.remove('selected'));
+                    
+                    // Add selection to clicked row
+                    event.currentTarget.classList.add('selected');
+                    event.currentTarget.classList.add('active');
+                    selectedRow = rowData;
+                    const img_ids = ["img-5"];
+                    rowData.images = ["https://picsum.photos/200/150?random=12"];
+                    await displayImages(rowData.images, img_ids);
+                }
+
+                // TODO: 
+                // Download and display images with constant size
+                async function displayImages(imageUrls, imd_ids) {
+                    console.log(`display Images`);
+                    
+                    if (imageUrls.length === 0) {
+                        return;
+                    }
+                    
+                    for (const imageUrl of imageUrls) {
+                        try {
+                            const img = document.getElementById("img-5");
+                            if (img){
+                                console.log(`Loaded Image`);
+                                img.src = imageUrl;
+                            }
+                            
+                            // Small delay to avoid overwhelming requests
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        } catch (error) {
+                            console.error(`Failed to load image: ${imageUrl}`, error);
+                        }
+                    }
+                }
+
+            </script>
+
+
+            <script id="RenderPagination">
+                //////////////////////////////////////////////////////////////
+                // Render pagination controls
+                function renderPagination(pagination) {
+                    const pageNumbers = document.getElementById('page-numbers');
+                    const prevBtn = document.getElementById('prev-btn');
+                    const nextBtn = document.getElementById('next-btn');
+                    
+                    // Update previous/next buttons
+                    prevBtn.disabled = !pagination.has_previous;
+                    nextBtn.disabled = !pagination.has_next;
+                    
+                    // Generate page number buttons (max 4)
+                    const pageButtons = generatePageNumbers(pagination.current_page, pagination.total_pages, 3);
+                    pageNumbers.innerHTML = pageButtons.map(page => {
+                        if (page === '...') {
+                            return `<button disabled>...</button>`;
+                        }
+                        return `
+                            <button ${page === pagination.current_page ? 'style="font-weight: bold;"' : ''} 
+                                    onclick="loadPage(${page})">
+                                ${page}
+                            </button>
+                        `;
+                    }).join('');
+                    
+                    // Add event listeners for previous/next buttons
+                    prevBtn.onclick = () => pagination.has_previous && loadPage(pagination.current_page - 1);
+                    nextBtn.onclick = () => pagination.has_next && loadPage(pagination.current_page + 1);
+                }
+
+                // Generate sliding window page numbers
+                function generatePageNumbers(currentPage, totalPages, maxVisible = 4) {
+                    if (totalPages <= maxVisible) {
+                        return Array.from({length: totalPages}, (_, i) => i + 1);
+                    }
+                    
+                    const pages = [];
+                    const half = Math.floor(maxVisible / 2);
+                    let start = Math.max(1, currentPage - half);
+                    let end = Math.min(totalPages, start + maxVisible - 1);
+                    
+                    // Adjust if we're near the end
+                    if (end - start + 1 < maxVisible) {
+                        start = Math.max(1, end - maxVisible + 1);
+                    }
+                    
+                    // Add first page and ellipsis if needed
+                    if (start > 1) {
+                        pages.push(1);
+                        if (start > 2) {
+                            pages.push('...');
+                        }
+                    }
+                    
+                    // Add middle pages
+                    for (let i = start; i <= end; i++) {
+                        pages.push(i);
+                    }
+                    
+                    // Add last page and ellipsis if needed
+                    if (end < totalPages) {
+                        if (end < totalPages - 1) {
+                            pages.push('...');
+                        }
+                        pages.push(totalPages);
+                    }
+                    
+                    return pages;
+                }
+
+                // Update page information
+                function updatePageInfo(pagination) {
+                    const info = document.getElementById('page-info');
+                    info.textContent = `Page ${pagination.current_page} of ${pagination.total_pages} (${pagination.total_items} total table_data_json)`;
+                }
+
+                // Event listeners for previous/next buttons
+                document.getElementById('prev-btn').addEventListener('click', function() {
+                    if (currentPage > 1) {
+                        loadPage(currentPage - 1);
+                    }
+                });
+
+                document.getElementById('next-btn').addEventListener('click', function() {
+                    if (currentPage < totalPages) {
+                        loadPage(currentPage + 1);
+                    }
+                });
+            </script> -->
         </main>
         <!-- Footer partial -->
         <div id="footer"></div>

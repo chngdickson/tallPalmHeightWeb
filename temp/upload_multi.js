@@ -1,12 +1,3 @@
-// export function loadUploadComponent() {
-//     fetch('./src/content/components/upload_multi.html')
-//         .then(response => response.text())
-//         .then(data => {
-//             document.getElementById('upload-files').innerHTML = data;
-//         })
-//         .catch(error => console.error('Error loading footer:', error));
-//   }
-
 document.addEventListener('DOMContentLoaded', function() {
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
@@ -221,27 +212,28 @@ document.addEventListener('DOMContentLoaded', function() {
             
             pipelineSteps.appendChild(stepDiv);
         });
-            // Assemble processing pipeline
-            processingPipeline.appendChild(pipelineTitle);
-            processingPipeline.appendChild(pipelineSteps);
-            
-            // Assemble file item
-            fileItem.appendChild(fileHeader);
-            fileItem.appendChild(processingPipeline);
-            updateDictionary(file, fileItem);
-            // Add event listener for remove button
-            fileRemove.addEventListener('click', () => {
-                if (processingActive) {
-                    showNotification("Cannot remove files during processing", "error");
-                    return;
-                }
-                removeFile(file.name);
-                deleteDictionary(file);
-                // fileItem.remove();
-            });
-            
-            return fileItem;
-        }
+        
+        // Assemble processing pipeline
+        processingPipeline.appendChild(pipelineTitle);
+        processingPipeline.appendChild(pipelineSteps);
+        
+        // Assemble file item
+        fileItem.appendChild(fileHeader);
+        fileItem.appendChild(processingPipeline);
+        updateDictionary(file, fileItem);
+        // Add event listener for remove button
+        fileRemove.addEventListener('click', () => {
+            if (processingActive) {
+                showNotification("Cannot remove files during processing", "error");
+                return;
+            }
+            removeFile(file.name);
+            deleteDictionary(file);
+            // fileItem.remove();
+        });
+        
+        return fileItem;
+    }
     
     function removeFile(fileName) {
         const fileIndex = files.findIndex(f => f.name === fileName);
@@ -344,7 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function processWithConcurrency() {
-        // Start initial uploads up to the concurrency limit
         const initialCount = Math.min(concurrencyLimit, uploadQueue.length);
         for (let i = 0; i < initialCount; i++) {
             processNextFile();
@@ -491,7 +482,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const fileItem = divErrorReport(file, error_type, red_color, red_color2, true)    
         errorReportList.appendChild(fileItem);
         errorReport.style.display = 'block';
-
     }
 
 

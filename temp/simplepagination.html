@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Pagination</title>
+</head>
+<body>
+    <div id="error" style="display: none;"></div>
+    
+    <div id="table_data_json-container">
+        <h2>table_data_json</h2>
+        <ul id="table_data_json-list"></ul>
+    </div>
+    
+    <div id="pagination-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID <i class="fas fa-sort"></i></th>
+                    <th>File Name <i class="fas fa-sort"></i></th>
+                    <th>Coordinates <i class="fas fa-sort"></i></th>
+                    <th>Download Report <i class="fas fa-sort"></i></th>
+                    <th>Status <i class="fas fa-sort"></i></th>
+                    <th>Logs <i class="fas fa-sort"></i></th>
+                    <th>Start Time <i class="fas fa-sort"></i></th>
+                    <th>Trees / GB <i class="fas fa-sort"></i></th>
+                </tr>
+            </thead>
+            <tbody id="id_table_body">
+            </tbody>
+        </table>
+        <button id="prev-btn" disabled>&lt; Previous</button>
+        
+        <div id="page-numbers">
+            <!-- Page buttons will be generated here -->
+        </div>
+        
+        <button id="next-btn" disabled>Next &gt;</button>
+    </div>
+    
+    <div id="page-info"></div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 0;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPage(1);
+        });
+
+        // Load specific page
+        async function loadPage(page) {           
+            // Replace with your actual API endpoint
+            const response = await fetch(`http://localhost:7071/api/getQueries/${page}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error(`http Az Func error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            currentPage = data.pagination.current_page;
+            totalPages = data.pagination.total_pages;
+            
+            renderTable(data.items);
+            renderPagination(data.pagination);
+            
+        }
+
+        function renderTable(table_data_json) {
+            const tbody = document.getElementById('id_table_body');
+            
+            // No Result
+            if (table_data_json.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 8;
+                cell.textContent = 'No table_data_json found';
+                row.appendChild(cell);
+                tbody.appendChild(row);
+                return;
+            }
+            // row.className = 'active';
+            
+
+            // Table
+            for (let i = 0; i < table_data_json.length; i++) {
+                const row_data = table_data_json[i];
+                const rowElement = document.getElementById(`row_elem${i}`);
+                // IF exists
+                if(rowElement){
+                    // Update
+                    cr8orUpdateRow(row_data, i, update=true);
+                }
+                else{
+                    // Create and push
+                    const row = cr8orUpdateRow(row_data, i, update=false);
+                    tbody.appendChild(row);
+                }
+            }
+            return;
+        }
+
+        function cr8orUpdateRow(table_row_dict, i, update){
+            // Assume data_dict
+            const row = document.createElement('tr');
+            row.id=`row_elem${i}`;
+            
+            const myOrder = ["id","filename","coordinates","processed_url","status","logs_url", "date","size"];
+            const sortedDict = {};
+            myOrder.forEach(key => {
+                if (key in table_row_dict) {
+                    sortedDict[key] = table_row_dict[key];
+                }
+            });
+            outerLoop:
+            for (const [key, value] of Object.entries(sortedDict)) {
+                let cellContent;
+                switch (key) {
+                    case "id":
+                        console.log(`id is here ${value}`)
+                        if (update){
+                            const cell_update = document.getElementById(`td_${key}${i}`);
+                            if (cell_update){
+                                cell_update.textContent = `#${value}`;
+                            }
+                        }
+                        else{
+                            cellContent = `#${value || '1089'}`;
+                        }
+                        break
+                    case "filename": // UpdateFileLink
+                        if (update){
+                            const link = document.getElementById(`td_link_${key}${i}`);
+                            if (link){
+                                link.innerText = `${value}`;
+                                cell_update.href = value; // Update URL
+                                cell_update.setAttribute('data-url', value); // Store URL in data attribute
+                            }
+                        }
+                        else{
+                            const link = document.createElement('a');
+                            const icon = document.createElement('i');
+                            const text = document.createTextNode(`${value}`);
+                            link.id = `td_link_${key}${i}`;
+                            link.href = '#';
+                            link.className = 'view-logs2';
+                            icon.className = 'fas fa-file file-icon2';
+                            
+                            link.appendChild(icon);
+                            link.appendChild(text);
+                            
+                            cellContent = link;
+                        }
+                        break
+                    case "coordinates":
+                        if (update){
+                            const cell_update = document.getElementById(`td_${key}${i}`);
+                            if (cell_update){
+                                cell_update.textContent = value;
+                            }
+                        }
+                        else{
+                            cellContent = value || 'XYZ';
+                        }
+                        break
+                    case "processed_url":
+                        if (update){
+                            const cell_update = document.getElementById(`td_span_${key}${i}`);
+                            if (cell_update){
+                                // cell_update.textContent = value;
+                                cell_update.href = value; // Update URL
+                                cell_update.setAttribute('data-url', value); // Store URL in data attribute
+                            }
+                        }
+                        else{
+                            const link = document.createElement('a');
+                            const icon = document.createElement('i');
+                            const text = document.createTextNode(' Download');
+                            link.href = value || '#'; // Use actual URL
+                            link.id = `td_span_${key}${i}`;
+                            link.className = 'download-btn';
+                            icon.className = 'fas fa-download';
+                            link.appendChild(icon);
+                            link.appendChild(text);
+                            
+                            cellContent = link;
+                        }
+                        break;
+                    case "status":
+                        if (update){
+                            const cell_update = document.getElementById(`td_span_${key}${i}`);
+                            if (cell_update){cell_update.textContent = value;}
+                        }
+                        else{
+                            const span = document.createElement('span');
+                            span.id = `td_span_${key}${i}`
+                            span.className = `status ${status.toLowerCase().replace(' ', '-')}`;
+                            span.textContent = value;
+                            
+                            cellContent = span;
+                        }
+                        break;
+                    case "logs_url":
+                        if (update){
+                            const link = document.getElementById(`td_link_${key}${i}`);
+                            if (link){link.innerText = `${value}`;}
+                        }
+                        else{
+                            const link = document.createElement('a');
+                            const icon = document.createElement('i');
+                            const text = document.createTextNode(' View Logs');
+                            link.id = `td_link_${key}${i}`;
+                            link.href = '#';
+                            link.className = 'view-logs2';
+                            icon.className = 'fas fa-list';
+                            link.appendChild(icon);
+                            link.appendChild(text);
+                            
+                            cellContent = link;
+                        }
+                        break;
+                    case "date":
+                        if (update){
+                            const cell_update = document.getElementById(`td_${key}${i}`);
+                            if (cell_update){cell_update.textContent = value;}
+                        }
+                        else{
+                            
+                            cellContent = value || 'Today, 11:23 AM';
+                        }
+                        break;
+                    case "size":
+                        if (update){
+                            const cell_update = document.getElementById(`td_${key}${i}`);
+                            if (cell_update){cell_update.textContent = value;}
+                        }
+                        else{
+                            cellContent = value || '120 / 3.2 GB';
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+
+                    if (update === false){
+                        if (cellContent != null){
+                            const cell = document.createElement('td');
+                            cell.id = `td_${key}${i}`;
+                            if (typeof cellContent === 'string') {
+                                cell.textContent = cellContent;
+                            } else {
+                                cell.appendChild(cellContent);
+                            }
+                            row.appendChild(cell);
+                        }
+                    } 
+            }
+            return row;
+        }
+        document.getElementById('id_table_body').addEventListener('click', (e) => {
+            if (e.target.closest('.download-btn')) {
+                e.preventDefault();
+                const fileName = e.target.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+                const downloadBtn = e.target.closest('.download-btn');
+                const row = downloadBtn.closest('tr');
+                const rowId = row.id.replace('row_elem', '');
+                
+                // Get the actual download URL from your data
+                const downloadUrl = downloadBtn.getAttribute('data-url') || 
+                                downloadBtn.href || 
+                                downloadBtn.textContent;
+                
+                // Mock download simulation
+                console.log(`Initiating download for row ${rowId}`);
+                console.log(`Download URL: ${downloadUrl}`);
+                
+                // Simulate download process
+                alert(`Downloading from: ${downloadUrl}\nThis would trigger a file download in a real application.`);
+            }
+        });
+        document.querySelector('.export-btn').addEventListener('click', () => {
+            alert('Data export started. You will receive an email when it is ready.');
+        });
+
+
+
+        //////////////////////////////////////////////////////////////
+        // Render pagination controls
+        function renderPagination(pagination) {
+            const pageNumbers = document.getElementById('page-numbers');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            // Update previous/next buttons
+            prevBtn.disabled = !pagination.has_previous;
+            nextBtn.disabled = !pagination.has_next;
+            
+            // Generate page number buttons (max 4)
+            const pageButtons = generatePageNumbers(pagination.current_page, pagination.total_pages, 3);
+            pageNumbers.innerHTML = pageButtons.map(page => {
+                if (page === '...') {
+                    return `<button disabled>...</button>`;
+                }
+                return `
+                    <button ${page === pagination.current_page ? 'style="font-weight: bold;"' : ''} 
+                            onclick="loadPage(${page})">
+                        ${page}
+                    </button>
+                `;
+            }).join('');
+            
+            // Add event listeners for previous/next buttons
+            prevBtn.onclick = () => pagination.has_previous && loadPage(pagination.current_page - 1);
+            nextBtn.onclick = () => pagination.has_next && loadPage(pagination.current_page + 1);
+        }
+
+        // Generate sliding window page numbers
+        function generatePageNumbers(currentPage, totalPages, maxVisible = 4) {
+            if (totalPages <= maxVisible) {
+                return Array.from({length: totalPages}, (_, i) => i + 1);
+            }
+            
+            const pages = [];
+            const half = Math.floor(maxVisible / 2);
+            let start = Math.max(1, currentPage - half);
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            
+            // Adjust if we're near the end
+            if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+            
+            // Add first page and ellipsis if needed
+            if (start > 1) {
+                pages.push(1);
+                if (start > 2) {
+                    pages.push('...');
+                }
+            }
+            
+            // Add middle pages
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            
+            // Add last page and ellipsis if needed
+            if (end < totalPages) {
+                if (end < totalPages - 1) {
+                    pages.push('...');
+                }
+                pages.push(totalPages);
+            }
+            
+            return pages;
+        }
+
+        // Update page information
+        function updatePageInfo(pagination) {
+            const info = document.getElementById('page-info');
+            info.textContent = `Page ${pagination.current_page} of ${pagination.total_pages} (${pagination.total_items} total table_data_json)`;
+        }
+
+        // Event listeners for previous/next buttons
+        document.getElementById('prev-btn').addEventListener('click', function() {
+            if (currentPage > 1) {
+                loadPage(currentPage - 1);
+            }
+        });
+
+        document.getElementById('next-btn').addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                loadPage(currentPage + 1);
+            }
+        });
+    </script>
+</body>
+</html>

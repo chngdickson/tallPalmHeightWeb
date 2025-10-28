@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sliding Window Pagination with Image Preview</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .data-table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .data-table th { background-color: #f2f2f2; }
+        .data-table tr { cursor: pointer; }
+        .data-table tr:hover { background-color: #f5f5f5; }
+        .data-table tr.selected { background-color: #e6f3ff; }
+        .data-table tr.disabled { color: #999; cursor: not-allowed; }
+        .pagination { margin: 20px 0; }
+        .pagination button { 
+            padding: 10px 15px; 
+            margin: 0 5px; 
+            border: 1px solid #ddd; 
+            background: white; 
+            cursor: pointer; 
+        }
+        .pagination button:hover { background: #007bff; color: white; }
+        .pagination button.active { background: #007bff; color: white; }
+        .info { color: #666; margin: 10px 0; }
+        .image-preview { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        .image-container { display: flex; gap: 15px; flex-wrap: wrap; }
+        .image-container img { 
+            width: 200px;           /* Constant width */
+            height: 150px;          /* Constant height */
+            object-fit: cover;      /* Crop to fit container */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .loading { color: #666; font-style: italic; }
+        .no-images { color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Sliding Window Pagination with Image Preview</h1>
+    <div class="info" id="pageInfo">Showing rows 1-5</div>
+    
+    <!-- Pagination Buttons -->
+    <div class="pagination" id="pagination"></div>
+
+    <!-- Data Table -->
+    <table class="data-table" id="dataTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Images</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <!-- Image Preview Section -->
+    <div class="image-preview" id="imagePreview" style="display: none;">
+        <h3>Image Preview for: <span id="selectedRowName"></span></h3>
+        <div class="image-container" id="imageContainer"></div>
+    </div>
+
+    <script>
+        // Generate 60 rows of sample data with image URLs
+        const allData = [];
+        const imageBaseUrl = 'https://picsum.photos/'; // Free random images
+        
+        for (let i = 60; i >= 1; i--) {
+            const statuses = ["Completed", "In Progress", "Pending", "Failed"];
+            const status = statuses[Math.floor(Math.random() * statuses.length)];
+            const date = new Date(2024, 0, i).toISOString().split('T')[0];
+            
+            // Only generate images for "Completed" status
+            let images = [];
+            if (status === "Completed") {
+                const imageCount = Math.floor(Math.random() * 3) + 2;
+                for (let j = 0; j < imageCount; j++) {
+                    // Use specific dimensions for consistent sizing
+                    images.push(`${imageBaseUrl}200/150?random=${i}${j}`);
+                }
+            }
+            
+            allData.push({
+                id: i,
+                name: `Project ${String.fromCharCode(64 + (i % 26) + 1)}${i}`,
+                status: status,
+                date: date,
+                images: images
+            });
+        }
+
+        const totalRows = 60;
+        const buttonsCount = 6;
+        const rowsPerPage = 5;
+        let currentWindowStart = 0;
+        let selectedRow = null;
+
+        // Initialize pagination
+        function initPagination() {
+            updatePaginationButtons();
+            showPage(1);
+        }
+
+        // Update the pagination buttons based on current window
+        function updatePaginationButtons() {
+            const paginationDiv = document.getElementById('pagination');
+            paginationDiv.innerHTML = '';
+            
+            for (let i = 0; i < buttonsCount; i++) {
+                const button = document.createElement('button');
+                const startRow = currentWindowStart + (i * rowsPerPage) + 1;
+                const endRow = startRow + rowsPerPage - 1;
+                button.textContent = `${i + 1} (${startRow}-${endRow})`;
+                button.onclick = () => showPage(i + 1);
+                paginationDiv.appendChild(button);
+            }
+        }
+
+        // Show specific page and adjust window if needed
+        function showPage(buttonNumber) {
+            const clickedButtonIndex = buttonNumber - 1;
+            
+            if (clickedButtonIndex >= 2 && currentWindowStart + (buttonsCount * rowsPerPage) < totalRows) {
+                const newStart = currentWindowStart + (clickedButtonIndex - 1) * rowsPerPage;
+                currentWindowStart = Math.min(newStart, totalRows - (buttonsCount * rowsPerPage));
+                updatePaginationButtons();
+            }
+            else if (clickedButtonIndex === 0 && currentWindowStart > 0) {
+                currentWindowStart = Math.max(0, currentWindowStart - (2 * rowsPerPage));
+                updatePaginationButtons();
+            }
+            
+            const startIndex = currentWindowStart + (clickedButtonIndex * rowsPerPage);
+            const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
+            const pageData = allData.slice(startIndex, endIndex);
+            
+            displayTable(pageData);
+            updateActiveButton(buttonNumber);
+            updatePageInfo(startIndex, endIndex);
+        }
+
+        // Display data in table with clickable rows
+        function displayTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                
+                // Only make completed rows clickable
+                if (row.status === "Completed") {
+                    tr.onclick = () => selectRow(row);
+                    if (selectedRow && selectedRow.id === row.id) {
+                        tr.classList.add('selected');
+                    }
+                } else {
+                    tr.classList.add('disabled');
+                }
+                
+                const imageCountText = row.status === "Completed" ? 
+                    `${row.images.length} images` : 
+                    'No images (Not completed)';
+                
+                tr.innerHTML = `
+                    <td>${row.id}</td>
+                    <td>${row.name}</td>
+                    <td>${row.status}</td>
+                    <td>${row.date}</td>
+                    <td>${imageCountText}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Handle row selection and image download
+        async function selectRow(row) {
+            // Only allow selection if status is "Completed"
+            if (row.status !== "Completed") {
+                return;
+            }
+            
+            // Remove previous selection
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(r => r.classList.remove('selected'));
+            
+            // Add selection to clicked row
+            event.currentTarget.classList.add('selected');
+            selectedRow = row;
+            
+            // Show loading state
+            const imagePreview = document.getElementById('imagePreview');
+            const imageContainer = document.getElementById('imageContainer');
+            const selectedRowName = document.getElementById('selectedRowName');
+            
+            imagePreview.style.display = 'block';
+            selectedRowName.textContent = row.name;
+            
+            // Download and display images
+            await displayImages(row.images, imageContainer);
+        }
+
+        // Download and display images with constant size
+        async function displayImages(imageUrls, container) {
+            container.innerHTML = '';
+            
+            if (imageUrls.length === 0) {
+                container.innerHTML = '<div class="no-images">No images available</div>';
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading">Loading images...</div>';
+            
+            for (const imageUrl of imageUrls) {
+                try {
+                    const img = document.createElement('img');
+                    img.src = imageUrl;
+                    img.alt = 'Project image';
+                    
+                    // Force consistent styling
+                    img.style.width = '200px';
+                    img.style.height = '150px';
+                    img.style.objectFit = 'cover';
+                    
+                    img.onload = () => {
+                        console.log(`Loaded: ${imageUrl}`);
+                    };
+                    img.onerror = () => {
+                        img.alt = 'Failed to load';
+                        img.style.opacity = '0.5';
+                        // Create a placeholder with same dimensions
+                        img.style.backgroundColor = '#f0f0f0';
+                        img.style.display = 'flex';
+                        img.style.alignItems = 'center';
+                        img.style.justifyContent = 'center';
+                        img.innerHTML = '<span style="color: #666;">Failed to load</span>';
+                    };
+                    
+                    container.appendChild(img);
+                    
+                    // Small delay to avoid overwhelming requests
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.error(`Failed to load image: ${imageUrl}`, error);
+                }
+            }
+        }
+
+        // Update active button style
+        function updateActiveButton(activeButton) {
+            const buttons = document.querySelectorAll('.pagination button');
+            buttons.forEach((button, index) => {
+                if (index + 1 === activeButton) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        // Update page info text
+        function updatePageInfo(startIndex, endIndex) {
+            const infoDiv = document.getElementById('pageInfo');
+            infoDiv.textContent = `Showing rows ${startIndex + 1}-${endIndex} of ${totalRows}`;
+        }
+
+        // Initialize when page loads
+        window.onload = initPagination;
+    </script>
+</body>
+</html>

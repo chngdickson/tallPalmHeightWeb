@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <base href="/public/">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="./src/css/bodies/data_htm.css">
+        <link rel="stylesheet" href="./src/css/main.css">
+        <script type="module" src="./src/js/main.js"></script>
+        <link href="./src/css/fonts/fontawesome/all.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <title>Data Processing Dashboard</title>
+        <style>
+            /* Sliding Window Pagination Styles */
+            .sliding-pagination { 
+                margin: 20px 0; 
+                text-align: center;
+            }
+            .sliding-pagination button { 
+                padding: 10px 15px; 
+                margin: 0 5px; 
+                border: 1px solid #ddd; 
+                background: white; 
+                cursor: pointer; 
+                border-radius: 4px;
+            }
+            .sliding-pagination button:hover { 
+                background: #007bff; 
+                color: white; 
+            }
+            .sliding-pagination button.active { 
+                background: #007bff; 
+                color: white; 
+            }
+            
+            /* Image Preview Styles */
+            .image-preview-section { 
+                margin: 30px 0; 
+                padding: 20px; 
+                border: 1px solid #ddd; 
+                border-radius: 8px;
+                background: #f9f9f9;
+                display: none;
+            }
+            .image-container { 
+                display: flex; 
+                gap: 15px; 
+                flex-wrap: wrap; 
+                margin-top: 15px;
+            }
+            .image-container img { 
+                width: 200px;           
+                height: 150px;          
+                object-fit: cover;      
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+            .loading { color: #666; font-style: italic; }
+            .no-images { color: #999; font-style: italic; }
+            
+            /* Clickable rows */
+            .data-table tbody tr { cursor: pointer; }
+            .data-table tbody tr:hover { background-color: #f5f5f5; }
+            .data-table tbody tr.selected { background-color: #e6f3ff; }
+        </style>
+    </head>
+
+    <body>
+        <!-- Header partial -->
+        <div id="header"></div>
+        <main>
+            <div class="container2">
+                <div class="header2">
+                    <div class="header-content2">
+                        <h1><i class="fas fa-database"></i> Data Processing Dashboard</h1>
+                        <button class="export-btn">
+                            <i class="fas fa-envelope"></i> john.doe@sdguthrie.com
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search processed data...">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <select>
+                            <option>All Status</option>
+                            <option>Completed</option>
+                            <option>Processing</option>
+                            <option>Error</option>
+                        </select>
+                        
+                        <select>
+                            <option>Last 24 Hours</option>
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Custom Range</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Image Preview Section -->
+                <div class="image-preview-section" id="imagePreview">
+                    <h3><i class="fas fa-images"></i> Image Preview for: <span id="selectedFileName"></span></h3>
+                    <div class="image-container" id="imageContainer"></div>
+                </div>
+
+                <div class="stat-card code">
+                    <h1>Inspecting : <span id="currentFile">file1.laz</span></h1>
+                </div>
+
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div><img class="logo-image2" src="./src/images/palmFront.png"/></div>
+                        <h3>Tree: 1</h3>
+                    </div> 
+                    
+                    <div class="stat-card">
+                        <img class="logo-image2" src="./src/images/palmFront.png"/>
+                        <h3>Tree: 2</h3>
+                    </div> 
+                    <div class="stat-card">
+                        <img class="logo-image2" src="./src/images/palmFront.png"/>
+                        <h3>Tree: 3</h3>
+                    </div>                    
+                    <div class="stat-card">
+                        <img class="logo-image2" src="./src/images/palmFront.png"/>
+                        <h3>Tree: 4</h3>
+                    </div> 
+                </div>
+                
+                <div class="charts">
+                    <div class="chart-container2">
+                        <h3>Pointcloud Top View</h3>
+                        <div class="chart">
+                            <img class="logo-image2" src="./src/images/test2_coor.png"/>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <img class="logo-image2" src="./src/images/palmFront.png"/>
+                            <h3>Tree: 5</h3>
+                        </div> 
+                        
+                        <div class="stat-card">
+                            <img class="logo-image2" src="./src/images/palmFront.png"/>
+                            <h3>Tree: 6</h3>
+                        </div> 
+                    </div>
+                </div>
+                
+                <div class="data-table">
+                    <table id="mainDataTable">
+                        <thead>
+                            <tr>
+                                <th>ID <i class="fas fa-sort"></i></th>
+                                <th>File Name <i class="fas fa-sort"></i></th>
+                                <th>Coordinates <i class="fas fa-sort"></i></th>
+                                <th>Download Report <i class="fas fa-sort"></i></th>
+                                <th>Status <i class="fas fa-sort"></i></th>
+                                <th>Logs <i class="fas fa-sort"></i></th>
+                                <th>Start Time <i class="fas fa-sort"></i></th>
+                                <th>Trees / GB <i class="fas fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Data rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            
+                <!-- Sliding Window Pagination -->
+                <div class="sliding-pagination" id="slidingPagination">
+                    <!-- Buttons will be generated by JavaScript -->
+                </div>
+            </div>
+        
+            <script>
+                // Sample data - 60 rows with image URLs
+                const allData = [];
+                const imageBaseUrl = 'https://picsum.photos/200/150?random=';
+                
+                // Generate sample data
+                for (let i = 60; i >= 1; i--) {
+                    const statuses = ["Completed", "Processing", "Error"];
+                    const status = statuses[Math.floor(Math.random() * statuses.length)];
+                    const coordTypes = ["XYZ", "Lat/Long"];
+                    const coordType = coordTypes[Math.floor(Math.random() * coordTypes.length)];
+                    
+                    // Only generate images for "Completed" status
+                    let images = [];
+                    if (status === "Completed") {
+                        const imageCount = Math.floor(Math.random() * 3) + 2;
+                        for (let j = 0; j < imageCount; j++) {
+                            images.push(`${imageBaseUrl}${i}${j}`);
+                        }
+                    }
+                    
+                    allData.push({
+                        id: `#${1000 + i}`,
+                        fileName: `file${i}.${i % 2 === 0 ? 'laz' : 'pcd'}`,
+                        coordinates: coordType,
+                        status: status,
+                        startTime: `Today, ${Math.floor(Math.random() * 12) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')} ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
+                        treesGB: `${Math.floor(Math.random() * 300) + 20} / ${(Math.random() * 10 + 0.5).toFixed(1)} GB`,
+                        images: images
+                    });
+                }
+
+                // Pagination variables
+                const totalRows = 60;
+                const buttonsCount = 6;
+                const rowsPerPage = 5;
+                let currentWindowStart = 0;
+                let selectedRow = null;
+
+                // Initialize the dashboard
+                function initDashboard() {
+                    updatePaginationButtons();
+                    showPage(1);
+                    setupEventListeners();
+                }
+
+                // Update pagination buttons
+                function updatePaginationButtons() {
+                    const paginationDiv = document.getElementById('slidingPagination');
+                    paginationDiv.innerHTML = '';
+                    
+                    for (let i = 0; i < buttonsCount; i++) {
+                        const button = document.createElement('button');
+                        const startRow = currentWindowStart + (i * rowsPerPage) + 1;
+                        const endRow = startRow + rowsPerPage - 1;
+                        button.textContent = `${i + 1} (${startRow}-${endRow})`;
+                        button.onclick = () => showPage(i + 1);
+                        paginationDiv.appendChild(button);
+                    }
+                }
+
+                // Show specific page
+                function showPage(buttonNumber) {
+                    const clickedButtonIndex = buttonNumber - 1;
+                    
+                    // Slide window logic
+                    if (clickedButtonIndex >= 2 && currentWindowStart + (buttonsCount * rowsPerPage) < totalRows) {
+                        const newStart = currentWindowStart + (clickedButtonIndex - 1) * rowsPerPage;
+                        currentWindowStart = Math.min(newStart, totalRows - (buttonsCount * rowsPerPage));
+                        updatePaginationButtons();
+                    }
+                    else if (clickedButtonIndex === 0 && currentWindowStart > 0) {
+                        currentWindowStart = Math.max(0, currentWindowStart - (2 * rowsPerPage));
+                        updatePaginationButtons();
+                    }
+                    
+                    const startIndex = currentWindowStart + (clickedButtonIndex * rowsPerPage);
+                    const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
+                    const pageData = allData.slice(startIndex, endIndex);
+                    
+                    displayTable(pageData);
+                    updateActiveButton(buttonNumber);
+                }
+
+                // Display data in table
+                function displayTable(data) {
+                    const tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = '';
+                    
+                    data.forEach((row, index) => {
+                        const tr = document.createElement('tr');
+                        
+                        // Make row clickable if completed
+                        if (row.status === "Completed") {
+                            tr.onclick = () => selectRow(row);
+                            if (selectedRow && selectedRow.id === row.id) {
+                                tr.classList.add('selected');
+                            }
+                        }
+                        
+                        const statusClass = row.status.toLowerCase() === 'completed' ? 'completed' : 
+                                          row.status.toLowerCase() === 'error' ? 'error' : 'processing';
+                        
+                        tr.innerHTML = `
+                            <td>${row.id}</td>
+                            <td><a href="#" class="view-logs2"><i class="fas fa-file file-icon2"></i> ${row.fileName}</a></td>
+                            <td>${row.coordinates}</td>
+                            <td><a href="#" class="download-btn"><i class="fas fa-download"></i> Download</a></td>
+                            <td><span class="status ${statusClass}">${row.status}</span></td>
+                            <td><a href="#" class="view-logs2"><i class="fas fa-list"></i> View Logs</a></td>
+                            <td>${row.startTime}</td>
+                            <td>${row.treesGB}</td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+
+                // Handle row selection
+                async function selectRow(row) {
+                    // Remove previous selection
+                    const rows = document.querySelectorAll('#tableBody tr');
+                    rows.forEach(r => r.classList.remove('selected'));
+                    
+                    // Add selection to clicked row
+                    event.currentTarget.classList.add('selected');
+                    selectedRow = row;
+                    
+                    // Update current file display
+                    document.getElementById('currentFile').textContent = row.fileName;
+                    
+                    // Show image preview
+                    await showImagePreview(row);
+                }
+
+                // Show image preview
+                async function showImagePreview(row) {
+                    const imagePreview = document.getElementById('imagePreview');
+                    const imageContainer = document.getElementById('imageContainer');
+                    const selectedFileName = document.getElementById('selectedFileName');
+                    
+                    selectedFileName.textContent = row.fileName;
+                    imagePreview.style.display = 'block';
+                    
+                    if (row.images.length === 0) {
+                        imageContainer.innerHTML = '<div class="no-images">No images available for this file</div>';
+                        return;
+                    }
+                    
+                    imageContainer.innerHTML = '<div class="loading">Loading images...</div>';
+                    
+                    // Load images
+                    for (const imageUrl of row.images) {
+                        try {
+                            const img = document.createElement('img');
+                            img.src = imageUrl;
+                            img.alt = `${row.fileName} preview`;
+                            img.style.width = '200px';
+                            img.style.height = '150px';
+                            img.style.objectFit = 'cover';
+                            
+                            imageContainer.appendChild(img);
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        } catch (error) {
+                            console.error(`Failed to load image: ${imageUrl}`, error);
+                        }
+                    }
+                }
+
+                // Update active button style
+                function updateActiveButton(activeButton) {
+                    const buttons = document.querySelectorAll('.sliding-pagination button');
+                    buttons.forEach((button, index) => {
+                        if (index + 1 === activeButton) {
+                            button.classList.add('active');
+                        } else {
+                            button.classList.remove('active');
+                        }
+                    });
+                }
+
+                // Setup event listeners
+                function setupEventListeners() {
+                    // Export button
+                    document.querySelector('.export-btn').addEventListener('click', () => {
+                        alert('Data export started. You will receive an email when it is ready.');
+                    });
+                    
+                    // Download buttons
+                    document.addEventListener('click', (e) => {
+                        if (e.target.closest('.download-btn')) {
+                            e.preventDefault();
+                            const fileName = e.target.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+                            alert(`Preparing download for: ${fileName}`);
+                        }
+                    });
+                    
+                    // View logs
+                    document.addEventListener('click', (e) => {
+                        if (e.target.closest('.view-logs2')) {
+                            e.preventDefault();
+                            const fileId = e.target.closest('tr').querySelector('td:first-child').textContent;
+                            alert(`Showing logs for file ID: ${fileId}`);
+                        }
+                    });
+                }
+
+                // Initialize when page loads
+                window.onload = initDashboard;
+            </script>
+        </main>
+        <!-- Footer partial -->
+        <div id="footer"></div>
+    </body>
+</html>
