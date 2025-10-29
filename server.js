@@ -4,9 +4,11 @@ require('dotenv').config();
 const express = require('express');
 const { BlobServiceClient } = require("@azure/storage-blob");
 const { AbortController } = require('@azure/abort-controller');
+const { PassThrough } = require("stream");
 const archiver = require('archiver');
 const fs = require("fs");
 const path = require("path");
+
 //=============== Initialization ======================//
 // App Imports
 const app = express();
@@ -60,7 +62,19 @@ server.listen(port, () => {
 
 io.on('connection', (socket) => {
     socket.on('getBlobToken', async (data, callback) => {
+		/* #### Frontend calls ####
+			socket = io();
+			socket.on('connect', () => {console.log('✅ Connected to server');});
+			socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error);});
+			socket.on('upload-progress', (data) => {console.log('Progress received:', data.percent);});
+			socket.emit('getBlobToken', { 
+				filename: file.name, 
+				gb: 0.7, 
+				file: file 
+			}, (response) => {socket.disconnect();});
+		*/
         try {
+			// socket.emit('upload-progress', { percent });
             const { filename, gb, file } = data; // Add file parameter
             console.log(`${filename}, ${gb}`);
             
@@ -92,11 +106,10 @@ io.on('connection', (socket) => {
                 onProgress: (progress) => {
                     const percent = Math.round((progress.loadedBytes / file.length) * 100);
                     console.log(`Progress: ${percent}%`);
+					// Upload Progress Socket!!!
                     socket.emit('upload-progress', { percent });
                 },
             });
-            
-            // Use callback instead of res.send()
             callback({ success: true, data: response_json });
             
         } catch (error) {
@@ -150,141 +163,99 @@ app.get(`/api/getQueries/:page`, async (req, res) => {
     res.send(await response.json());
 });
 
-app.get('/api/download-zip', async(req, res) => {
-    try {
-        const foldername = req.query.foldername || 'tph-files';
-        const http_response = await fetch(`http://localhost:7071/api/getDownloadBlobToken/`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-        });
-        if (!http_response.ok){throw new Error(`Az Func get Blob Error`);}
-        
-        const response_json = await http_response.json();
-        const primary_endpoint = response_json["primary_endpoint"];
-        const sas_token = response_json["sas_token"];
-        const container_name = response_json["container_name"];
-        const sas_url = `${primary_endpoint}?${sas_token}`;
-        const blobServiceClient = new BlobServiceClient(sas_url);
-        const containerClient = blobServiceClient.getContainerClient(container_name);
-        
-        
-        const output = fs.createWriteStream("all-files.zip");
-        res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="all-files.zip"`);
-        const archive = archiver('zip', { 
-            zlib: { level: 9 } ,
-            highWaterMark: 1024 * 1024
-        });
-        
-        archive.on('warning', (err) => {
-            console.warn('Archive warning:', err);
-        });
-        
-        archive.on('error', (err) => {
-            console.error('Archive error:', err);
-            if (!res.headersSent) res.status(500).send('Archive error');
-        });
-        output.on('close', () => {
-            console.log(archive.pointer() + ' total bytes');
-            console.log('archiver has been finalized and the output file descriptor has closed.');
-        });
-        // Pipe archive directly to HTTP response
-        archive.pipe(res);
-        
-        const streamDict = {};
-        
-        // Get all blob streams first
-        for await (const blob of containerClient.listBlobsFlat()) {
-            const blobClient = containerClient.getBlobClient(blob.name);
-            const response = await blobClient.download(0); // Download from offset 0
-            streamDict[blob.name] = response.readableStreamBody;
+
+io.on('connection', (socket) => {
+    socket.on('download-zip', async (data, callback) => {
+		/* #### Frontend calls ####
+			socket = io();
+			socket.on('connect', () => {console.log('✅ Connected to server');});
+			socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error);});
+			socket.on('zipping-progress', (data) => {console.log('Progress received:', data.percent);});
+			socket.on("zipChunk", base64Chunk => {chunks.push(Uint8Array.from(atob(base64Chunk), c => c.charCodeAt(0)));});
+			socket.emit('download-zip', { 
+				foldername: "processed/folderA"
+			}, (response) => {socket.disconnect();});
+		*/
+        try {
+			// Socket to publish
+			// socket.emit('zipping-progress', { percent });
+			const {foldername} = data;
+				const http_response = await fetch(`http://localhost:7071/api/getDownloadBlobToken/`, {
+				method: 'GET',
+				headers: { 'Content-Type': 'application/json' },
+			});
+			if (!http_response.ok){throw new Error(`Az Func get Blob Error`);}
+			
+			const response_json = await http_response.json();
+			const primary_endpoint = response_json["primary_endpoint"];
+			const sas_token = response_json["sas_token"];
+			const container_name = response_json["container_name"];
+			const sas_url = `${primary_endpoint}?${sas_token}`;
+			const blobServiceClient = new BlobServiceClient(sas_url);
+			const containerClient = blobServiceClient.getContainerClient(container_name);
+			// List Folders in Azure
+			let streamDict = {};
+			let totalBytes = 0;
+			let bytesProcessed = 0;
+			for await (const blob of containerClient.listBlobsFlat()) {
+				const blobClient = containerClient.getBlobClient(blob.name);
+				const response = await blobClient.download(0); // Download from offset 0
+				streamDict[blob.name] = response.readableStreamBody;
+				totalBytes += blob.properties.contentLength;
+			}
+
+			const output = fs.createWriteStream("all-files.zip");
+			const archive = archiver('zip', { 
+				zlib: { level: 9 } ,
+				highWaterMark: 1024 * 1024
+			});
+			const passthrough = new PassThrough();
+			archive.pipe(passthrough);
+			passthrough.on("data", chunk => {
+				// console.log("Chunk size:", chunk.length); // see small increments
+				socket.emit("zipChunk", chunk.toString("base64"));
+				bytesProcessed += chunk.length;
+				socket.emit('zipping-progress', { stage: "zipping", percent: (bytesProcessed/totalBytes)*100});
+			});
+			archive.on('warning', (err) => {
+				console.warn('Archive warning:', err);
+			});
+			archive.on('error', (err) => {
+				console.error('Archive error:', err);
+				if (!callback.headersSent) {callback({ ok: false, error: 'Archive error'});}
+			});
+			archive.on("finish", () => {
+				socket.emit('zipping-progress', { stage: "zipping", percent: 100});
+			});
+			output.on('close', () => {
+				console.log(archive.pointer() + ' total bytes');
+				console.log('archiver has been finalized and the output file descriptor has closed.');
+			});
+			
+			// Pipe archive directly to HTTP response
+			// archive.pipe(callback);
+			
+			// Append all streams to archive
+			let index = 0;
+			let len_zips = Object.keys(streamDict).length;
+			for (const blobName in streamDict) {
+				index++;
+				const readableStream = streamDict[blobName];
+				archive.append(readableStream, { name: blobName });
+				readableStream.on('error', (err) => console.error(`Stream error for ${blobName}:`, err));
+				socket.emit('zipping-progress', { 
+					stage: "init", percent: (index/len_zips)*100
+				});
+			}
+			console.log("all blobs are streamed");
+			await archive.finalize();
+            callback({ ok: true, data: response_json });
+            
+        } catch (error) {
+            console.error(error);
+            callback({ ok: false, error: error.message });
         }
-        
-        // Append all streams to archive
-        for (const blobName in streamDict) {
-            const readableStream = streamDict[blobName];
-            archive.append(readableStream, { name: blobName });
-            readableStream.on('error', (err) => console.error(`Stream error for ${blobName}:`, err));
-        }
-        
-        await archive.finalize();
-        
-    } catch (error) {
-        console.error('Download zip error:', error);
-        if (!res.headersSent) res.status(500).json({ error: error.message });
-    }
+    });
 });
 
-
-async function streamsToCompressed(streamDict, outputFilePath) {  
-  return new Promise((resolve, reject) => {  
-
-    const fs = require("fs");
-    const archiver = require('archiver');
-
-    // create a file to stream archive data to. 
-    // In case you want to directly stream output in http response of express, just grab 'res' in that case instead of creating file stream
-    const output = fs.createWriteStream(outputFilePath);
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="all-files.zip"`);
-    const archive = archiver('zip', {
-      zlib: { level: 9 }, // Sets the compression level.
-      highWaterMark: 1024 * 1024 // 1MB chunks
-    });
-
-    // listen for all archive data to be written
-    // 'close' event is fired only when a file descriptor is involved
-    output.on('close', () => {
-      console.log(archive.pointer() + ' total bytes');
-      console.log('archiver has been finalized and the output file descriptor has closed.');
-    });
-
-    // good practice to catch warnings (ie stat failures and other non-blocking errors)
-    archive.on('warning', (err) => {
-      if (err.code === 'ENOENT') {
-        // log warning
-      } else {
-        // throw error
-        throw err;
-      }
-    });
-    
-    // good practice to catch this error explicitly
-    archive.on('error', (err) => {
-      throw err;
-    });    
- 
-    // pipe archive data to the file
-    archive.pipe(res);
-    
-    for(const blobName in streamDict) {
-        const readableStream = streamDict[blobName];
-        
-        // finalize the archive (ie we are done appending files but streams have to finish yet)
-        archive.append(readableStream, { name: blobName });
-
-        readableStream.on("error", reject);
-    }
-
-    archive.finalize();
-    resolve();
-  });
-}
-
-
-
-
-/**
- *                     
-const fileName = e.target.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
-const downloadBtn = e.target.closest('.download-btn');
-const row = downloadBtn.closest('tr');
-const rowId = row.id.replace('row_elem', '');
-
-// Get the actual download URL from your data
-const downloadUrl = downloadBtn.getAttribute('data-url') || 
-                downloadBtn.href || 
-                downloadBtn.textContent;
-const az_dl = new AzureBlobDownloader();
-await az_dl.downloadAllBlobs();
- */
+app.listen(3000, () => console.log("Server running at http://localhost:3000"));

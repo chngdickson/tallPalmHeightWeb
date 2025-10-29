@@ -349,7 +349,6 @@ class FileProcessor {
                 file: file 
             }, (response) => {
                 // Close socket on success or error
-                socket.disconnect();
                 
                 if (response.success) {
                     console.log('Upload complete:', response.data);
@@ -357,6 +356,7 @@ class FileProcessor {
                     console.error('Upload failed:', response.error);
                     this.markFileAsError(file, `Upload Error: ${response.error}`);
                 }
+                socket.disconnect();
             });
 
             return true;
