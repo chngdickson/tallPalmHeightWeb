@@ -1,5 +1,5 @@
 import { WebPubSubClient } from "@azure/web-pubsub-client";
-
+import { BlobServiceClient } from "@azure/storage-blob";
 function IsJson(str){
     try {
         JSON.parse(str);
@@ -321,54 +321,119 @@ class FileProcessor {
         // Listens to the Processing and Storing
         const processResult = await this.callProcessFunction(file);          
     }
-    
+
+    /**const ONE_MB = 1_048_576;
+blobServiceClient.uploadData(data), {
+    onProgress: (progress) => handleUploadProgress(progress.loadedBytes),
+    maxSingleShotSize: 4 * ONE_MB,
+}); */
     /** ===== Start : Upload ========== */
-    async uploadToAzure(file) {
-        let socket = null;
-        
+    async uploadToAzure(file) {       
         try {
-            socket = io();
-            
-            socket.on('connect', () => {
-                console.log('✅ Connected to server');
+            console.log(`File Being sent to backend Nodejs... \n[filename ${file.name}, GB: ${this.filesizeInGB(file)}]`)
+            const response = await fetch('/api/getBlobToken2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    filename: file.name, 
+                    gb : this.filesizeInGB(file)
+                })
             });
-
-            socket.on('connect_error', (error) => {
-                console.error('❌ Connection failed:', error);
-                this.markFileAsError(file, `Connection failed: ${error.message}`);
-            });
-
-            socket.on('upload-progress', (data) => {
-                console.log('Progress received:', data.percent);
-                this.dom.updateProgress(file.name, 'upload', data.percent);
-            });
-
-            socket.emit('getBlobToken', { 
-                filename: file.name, 
-                gb: this.filesizeInGB(file), 
-                file: file 
-            }, (response) => {
-                // Close socket on success or error
+            if (response.ok) {
+                const response_json = await response.json();
                 
-                if (response.success) {
-                    console.log('Upload complete:', response.data);
-                } else {
-                    console.error('Upload failed:', response.error);
-                    this.markFileAsError(file, `Upload Error: ${response.error}`);
-                }
-                socket.disconnect();
-            });
+                const sas_url = response_json.sas_url;
+                const container_name = response_json.container_name;
+                const blob_name = response_json.blob_name;
+
+                const blobServiceClient = new BlobServiceClient(sas_url);
+                const containerClient = blobServiceClient.getContainerClient(container_name);
+                const blockBlobClient = containerClient.getBlockBlobClient(blob_name);
+                
+                const ONE_MB = 1_048_576;
+                await blockBlobClient.uploadData(file, {
+                    onProgress: (progress) => {
+                        const percent = Math.round((progress.loadedBytes / file.size) * 100);
+                        console.log(`Progress: ${percent}%`);
+                        this.dom.updateProgress(file.name, 'upload', percent);
+                    },
+                    maxSingleShotSize: 1 * ONE_MB,
+                });
+            } else {
+                console.error('Upload failed:', response.error);
+                this.markFileAsError(file, `Upload Error: ${response.error}`);
+            }
 
             return true;
             
         } catch(error) {
-            if (socket) {
-                socket.disconnect(); // Close socket on catch error
-            }
             this.markFileAsError(file, `Upload Error: ${error.message}`);
             return false;
         }
     }
+    // async uploadToAzure2(file) {
+    //     let socket = null;
+        
+    //     try {
+    //         socket = io();
+            
+    //         socket.on('connect', () => {
+    //             console.log('✅ Connected to server');
+    //         });
+
+    //         socket.on('connect_error', (error) => {
+    //             console.error('❌ Connection failed:', error);
+    //             this.markFileAsError(file, `Connection failed: ${error.message}`);
+    //         });
+
+    //         socket.on('upload-progress', (data) => {
+    //             console.log('Progress received:', data.percent);
+    //             this.dom.updateProgress(file.name, 'upload', data.percent);
+    //         });
+    //         console.log(`File Being sent to backend Nodejs... \n[filename ${file.name}, GB: ${this.filesizeInGB(file)}]`)
+    //         socket.emit('getBlobToken', { 
+    //             filename: file.name, 
+    //             gb: this.filesizeInGB(file), 
+    //             file: file 
+    //         }, (response) => {
+    //             // Close socket on success or error
+    //             if (response.success) {
+    //                 const primary_endpoint = response_json.primary_endpoint;
+    //                 const sas_token = response_json.sas_token;
+    //                 const container_name = response_json.container_name;
+    //                 const blob_name = response_json.blob_name; 
+    //                 const sas_url = `${primary_endpoint}?${sas_token}`;
+                    
+    //                 const blobServiceClient = new BlobServiceClient(sas_url);
+    //                 const containerClient = blobServiceClient.getContainerClient(container_name);
+    //                 const blockBlobClient = containerClient.getBlockBlobClient(blob_name);
+                    
+    //                 await blockBlobClient.uploadData(file, {
+    //                     onProgress: (progress) => {
+    //                         const percent = Math.round((progress.loadedBytes / file.length) * 100);
+    //                         console.log(`Progress: ${percent}%`);
+    //                         // Upload Progress Socket!!!
+    //                         socket.emit('upload-progress', { percent });
+    //                     },
+    //                 });
+    //             } else {
+    //                 console.error('Upload failed:', response.error);
+    //                 this.markFileAsError(file, `Upload Error: ${response.error}`);
+    //             }
+                
+    //             socket.disconnect();
+    //         });
+
+    //         return true;
+            
+    //     } catch(error) {
+    //         if (socket) {
+    //             socket.disconnect(); // Close socket on catch error
+    //         }
+    //         this.markFileAsError(file, `Upload Error: ${error.message}`);
+    //         return false;
+    //     }
+    // }
     /** ===== END: Upload ========== */
 
 
@@ -514,15 +579,15 @@ class FileProcessor {
             return false;
         }
         
-        // if (file.size > 20 * 1000 * 1024 * 1024) {
-        //     this.dom.showNotification(`File "${file.name}" exceeds 20GB limit.`, 'error');
-        //     return false;
-        // }
+        if (file.size > 20 * 1000 * 1024 * 1024) {
+            this.dom.showNotification(`File "${file.name}" exceeds 20GB limit.`, 'error');
+            return false;
+        }
         
-        // if (file.size < 10 * 1024 * 1024) {
-        //     this.dom.showNotification(`File "${file.name}" is below 10MB limit.`, 'error');
-        //     return false;
-        // }
+        if (file.size < 1 * 1024 * 1024) {
+            this.dom.showNotification(`File "${file.name}" is below 1MB limit.`, 'error');
+            return false;
+        }
         
         return true;
     }

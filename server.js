@@ -59,67 +59,54 @@ server.listen(port, () => {
 // ===================================================//
 // =============== Index HTML ========================//
 // ===================================================//
-
-io.on('connection', (socket) => {
-    socket.on('getBlobToken', async (data, callback) => {
-		/* #### Frontend calls ####
-			socket = io();
-			socket.on('connect', () => {console.log('✅ Connected to server');});
-			socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error);});
-			socket.on('upload-progress', (data) => {console.log('Progress received:', data.percent);});
-			socket.emit('getBlobToken', { 
-				filename: file.name, 
-				gb: 0.7, 
-				file: file 
-			}, (response) => {socket.disconnect();});
-		*/
-        try {
-			// socket.emit('upload-progress', { percent });
-            const { filename, gb, file } = data; // Add file parameter
-            console.log(`${filename}, ${gb}`);
-            
-            const http_response = await fetch("http://localhost:7071/api/getBlobToken", {
+app.post('/api/getBlobToken2', async (req, res) => {
+    try {
+		/* Frontend API
+		const response = await fetch('/api/getBlobToken2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    filename: file.name,
+					gb : 0.153
+                })
+            });*/
+        const { filename, gb } = req.body;
+        
+        const http_response = await fetch("http://localhost:7071/api/getBlobToken", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename: filename, filesizeInGB: gb })
             });
-            
-            const response_json = await http_response.json();
-            if (!http_response.ok) {
-                throw new Error(response_json.message || 'Request failed');
-            }
-            if (response_json.status === "unsuccessful") {
-                throw new Error(response_json.message || 'Unsuccessful response');
-            }
 
-            const primary_endpoint = response_json.primary_endpoint;
-            const sas_token = response_json.sas_token;
-            const container_name = response_json.container_name;
-            const blob_name = response_json.blob_name; 
-            const sas_url = `${primary_endpoint}?${sas_token}`;
+        if (http_response.ok) {
+            const response_json = await http_response.json();
+            const primary_endpoint 	= response_json.primary_endpoint;
+            const sas_token 		= response_json.sas_token;
+            const container_name 	= response_json.container_name;
+            const blob_name 		= response_json.blob_name; 
+            const sas_url 			= `${primary_endpoint}?${sas_token}`;
             
-            const blobServiceClient = new BlobServiceClient(sas_url);
-            const containerClient = blobServiceClient.getContainerClient(container_name);
-            const blockBlobClient = containerClient.getBlockBlobClient(blob_name);
-            
-            await blockBlobClient.uploadData(file, {
-                onProgress: (progress) => {
-                    const percent = Math.round((progress.loadedBytes / file.length) * 100);
-                    console.log(`Progress: ${percent}%`);
-					// Upload Progress Socket!!!
-                    socket.emit('upload-progress', { percent });
-                },
-            });
-            callback({ success: true, data: response_json });
-            
-        } catch (error) {
-            console.error(error);
-            callback({ success: false, error: error.message });
+            res.json({ sas_url, container_name, blob_name });
+        } else {
+            res.status(response.status).json({ error: 'Azure Function failed' });
         }
-    });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
+
 app.post('/api/getTokenPubSub', async (req, res) => {
+	/** FRONTEND
+	 * const response = await fetch('/api/getTokenPubSub', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    filename: file.name
+                })
+            });
+	 */
     try {
         const { filename } = req.body;
         
@@ -149,8 +136,9 @@ app.post('/api/getTokenPubSub', async (req, res) => {
 // =============== Data HTML ========================//
 // ===================================================//
 app.get(`/api/getQueries/:page`, async (req, res) => {
-    // frontend : 
-    //      const response = await fetch(`/api/getQueries/${page}`);
+    /* Frontend api : 
+		const response = await fetch(`/api/getQueries/${page}`);
+	*/
     const page = req.params.page; // Will be "1"
     console.log(`page is : ${page}`);
     const response = await fetch(`http://localhost:7071/api/getQueries/${page}`, {
@@ -161,12 +149,15 @@ app.get(`/api/getQueries/:page`, async (req, res) => {
         throw new Error(`http Az Func error! status: ${response.status}`);
     }
     res.send(await response.json());
+	console.warn(`Page, ${page}`);
 });
 
 
 io.on('connection', (socket) => {
     socket.on('download-zip', async (data, callback) => {
-		/* #### Frontend calls ####
+		/* 
+		#### Frontend calls #####
+
 			socket = io();
 			socket.on('connect', () => {console.log('✅ Connected to server');});
 			socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error);});
@@ -175,11 +166,19 @@ io.on('connection', (socket) => {
 			socket.emit('download-zip', { 
 				foldername: "processed/folderA"
 			}, (response) => {socket.disconnect();});
+		
+		#### Frontend calls #####
 		*/
         try {
-			// Socket to publish
-			// socket.emit('zipping-progress', { percent });
-			const {foldername} = data;
+			/**
+			#### Backend API calls #####
+
+				Socket to publish
+				socket.emit('zipping-progress', { percent });
+			
+			#### Backend API calls #####
+			*/
+			const {filename, blob_folder} = data;
 				const http_response = await fetch(`http://localhost:7071/api/getDownloadBlobToken/`, {
 				method: 'GET',
 				headers: { 'Content-Type': 'application/json' },
@@ -197,14 +196,10 @@ io.on('connection', (socket) => {
 			let streamDict = {};
 			let totalBytes = 0;
 			let bytesProcessed = 0;
-			for await (const blob of containerClient.listBlobsFlat()) {
-				const blobClient = containerClient.getBlobClient(blob.name);
-				const response = await blobClient.download(0); // Download from offset 0
-				streamDict[blob.name] = response.readableStreamBody;
-				totalBytes += blob.properties.contentLength;
-			}
+			let zip_filename = `${filenameWithoutExtension(filename)}.zip`;
 
-			const output = fs.createWriteStream("all-files.zip");
+			
+			const output = fs.createWriteStream(zip_filename);
 			const archive = archiver('zip', { 
 				zlib: { level: 9 } ,
 				highWaterMark: 1024 * 1024
@@ -213,9 +208,9 @@ io.on('connection', (socket) => {
 			archive.pipe(passthrough);
 			passthrough.on("data", chunk => {
 				// console.log("Chunk size:", chunk.length); // see small increments
-				socket.emit("zipChunk", chunk.toString("base64"));
 				bytesProcessed += chunk.length;
-				socket.emit('zipping-progress', { stage: "zipping", percent: (bytesProcessed/totalBytes)*100});
+				socket.emit("zipChunk", chunk.toString("base64"));
+				// socket.emit('zipping-progress', { stage: "zipping", percent: (bytesProcessed/totalBytes)*100});
 			});
 			archive.on('warning', (err) => {
 				console.warn('Archive warning:', err);
@@ -225,37 +220,57 @@ io.on('connection', (socket) => {
 				if (!callback.headersSent) {callback({ ok: false, error: 'Archive error'});}
 			});
 			archive.on("finish", () => {
-				socket.emit('zipping-progress', { stage: "zipping", percent: 100});
+				// socket.emit('zipping-progress', { stage: "zipping", percent: 100});
 			});
 			output.on('close', () => {
 				console.log(archive.pointer() + ' total bytes');
 				console.log('archiver has been finalized and the output file descriptor has closed.');
 			});
 			
-			// Pipe archive directly to HTTP response
-			// archive.pipe(callback);
-			
-			// Append all streams to archive
-			let index = 0;
-			let len_zips = Object.keys(streamDict).length;
-			for (const blobName in streamDict) {
-				index++;
-				const readableStream = streamDict[blobName];
-				archive.append(readableStream, { name: blobName });
-				readableStream.on('error', (err) => console.error(`Stream error for ${blobName}:`, err));
-				socket.emit('zipping-progress', { 
-					stage: "init", percent: (index/len_zips)*100
-				});
+			const azureBlobs = [];
+			for await (const blob of containerClient.listBlobsFlat()) {
+				azureBlobs.push(blob);
+			}
+			let i = 0;
+			let len_blobs = Object.keys(azureBlobs).length;
+			console.log(len_blobs);
+			for (const blob of azureBlobs) {  // Use for...of, not for...in
+				i++;
+				const blobName = blob.name;   // Now blob is the actual blob object
+				
+				if (blobName.startsWith(blob_folder)) {
+					const blobClient = containerClient.getBlobClient(blobName);  // You were missing this!
+					const response = await blobClient.download(0);
+					const readableStream = response.readableStreamBody;
+					totalBytes += blob.properties.contentLength;
+					archive.append(readableStream, { name: blobName });
+
+					readableStream.on('error', (err) => console.error(`Stream error for ${blobName}:`, err));
+					socket.emit('zipping-progress', { 
+						stage: "zipping", percent: (i/len_blobs)*100
+					});
+				}
 			}
 			console.log("all blobs are streamed");
+			socket.emit('zipping-progress', { stage: "zipping", percent: 100});
 			await archive.finalize();
-            callback({ ok: true, data: response_json });
+            callback({ ok: true, data: response_json, zip_filename: zip_filename});
             
         } catch (error) {
+			if (socket){
+				socket.disconnect();
+			}
             console.error(error);
-            callback({ ok: false, error: error.message });
+            callback({ ok: false, error: error.message, zip_filename: null});
         }
+		if (socket){socket.disconnect();}
     });
 });
 
+function filenameWithoutExtension(filename){
+	let split = filename.split('.');
+	split.pop();
+	let finalName = split.join(".");
+	return finalName
+}
 app.listen(3000, () => console.log("Server running at http://localhost:3000"));

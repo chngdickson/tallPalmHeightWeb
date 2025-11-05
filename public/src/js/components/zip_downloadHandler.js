@@ -4,16 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.download-btn')) {
             console.log('Download button clicked!');
             e.preventDefault();
-            const fileName = e.target.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
+            const fileName_fromFilenameButton = e.target.closest('tr').querySelector('td:nth-child(2)').textContent.trim();
             const downloadBtn = e.target.closest('.download-btn');
-            const row = downloadBtn.closest('tr');
-            const rowId = row.id.replace('row_elem', '');
             
-            // Get the actual download URL from your data
-            const downloadUrl = downloadBtn.getAttribute('data-url') || 
-                            downloadBtn.href || 
-                            downloadBtn.textContent;
-            await downloadallBlobZipProgress("tph-files")
+            // const downloadUrl = downloadBtn.href; // Not Worth using the href, 
+            let filename = downloadBtn.getAttribute('filename');
+            let blob_folder = downloadBtn.getAttribute('blob_folder');
+            let container_name = downloadBtn.getAttribute('container_name');
+            console.log(`${filename} ${blob_folder} ${container_name} ${fileName_fromFilenameButton}`);
+            await downloadallBlobZipProgress(filename, blob_folder);
         }
     });
     document.querySelector('.export-btn').addEventListener('click', () => {
@@ -21,7 +20,75 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-function createZip(id){
+
+async function downloadallBlobZipProgress(filename, blob_folder){
+    let socket = null;
+    let chunks = [];
+    let percentage = 0; 
+    const prog = create_HTML_Zip_PopUp(filename);
+    try{
+        socket = io();
+        socket.on('connect', () => {console.log('✅ Connected to server');});
+        socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error); alert("Connect Error during downloading!");});
+        socket.on('zipping-progress', (data) => {
+            // console.log('Progress received:', data);
+            if (!prog.ok){alert("Hey, we got DOM error while downloading!");}
+            
+            percentage = data.percent.toFixed(1);
+            if (prog.ok && data.stage ==="init"){
+                prog.bar.style.width = `${percentage}%`;
+                prog.percentText.textContent = `${percentage}%`;
+                prog.title.textContent = `Azure Init [${filename}]...`;
+            }
+            if (prog.ok && data.stage==="zipping"){
+                prog.bar.style.width = `${percentage}%`;
+                prog.percentText.textContent = `${percentage}%`;
+                if (percentage < 90){
+                    prog.title.textContent = `Zipping [${filename}]...`;
+                }else if(percentage > 90 && percentage < 95){
+                    prog.title.textContent = `Finalizing ZIP...`;
+                }
+                else{
+                    prog.bar.style.width = `100%`;
+                    prog.percentText.textContent = `100%`;
+                    prog.title.textContent = `Download Ready ✅ [${filename}]`;
+                }
+            }
+        });
+        socket.on("zipChunk", base64Chunk => {
+            chunks.push(Uint8Array.from(atob(base64Chunk), c => c.charCodeAt(0)));
+        });
+        socket.emit('download-zip', { 
+            filename: filename,
+            blob_folder : blob_folder
+        }, (response) => {
+            if (!response.ok) {
+                throw new Error('Download failed');
+            }
+            const blob = new Blob(chunks, { type: "application/zip" });
+            const url = window.URL.createObjectURL(blob);
+            
+            // Trigger download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = response.zip_filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            // Disconnect Socket upon completion
+            socket.disconnect();
+        });
+    } catch (error) {
+        if (socket){
+            socket.disconnect();
+        }
+        console.error('Download error:', error);
+    }
+};
+
+function create_HTML_Zip_PopUp(id){
     const container = document.getElementById("zip-popup");
     if (!container){
         console.error("No container #zip-popup-id found");
@@ -47,73 +114,11 @@ function createZip(id){
         barOuter.appendChild(barInner);
         container.appendChild(textOuter);
         container.appendChild(barOuter);
-        return { ok:true, 
+        return { 
+            ok:true, 
             title:document.getElementById(`id-bar-text-${id}`), 
             percentText:document.getElementById(`id-bar-percent-${id}`), 
-            bar:document.getElementById(`id-bar-inner-${id}`) };
-    }
-};
-
-async function downloadallBlobZipProgress(foldername){
-    let socket = null;
-    let chunks = [];
-    let percentage = 0; 
-    const prog = createZip(foldername);
-    try{
-        socket = io();
-        socket.on('connect', () => {console.log('✅ Connected to server');});
-        socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error); alert("Connect Error during downloading!");});
-        socket.on('zipping-progress', (data) => {
-            // console.log('Progress received:', data);
-            if (!prog.ok){alert("Hey, we got DOM error while downloading!");}
-            
-            percentage = data.percent.toFixed(1);
-            if (prog.ok && data.stage ==="init"){
-                prog.bar.style.width = `${percentage}%`;
-                prog.percentText.textContent = `${percentage}%`;
-                prog.title.textContent = `Azure Init [${foldername}]...`;
-            }
-            if (prog.ok && data.stage==="zipping"){
-                prog.bar.style.width = `${percentage}%`;
-                prog.percentText.textContent = `${percentage}%`;
-                if (percentage < 90){
-                    prog.title.textContent = `Zipping [${foldername}]...`;
-                }else if(percentage > 90 && percentage < 95){
-                    prog.title.textContent = `Finalizing ZIP...`;
-                }
-                else{
-                    prog.bar.style.width = `100%`;
-                    prog.percentText.textContent = `100%`;
-                    prog.title.textContent = `Ready to Download ✅`;
-                }
-            }
-        });
-        socket.on("zipChunk", base64Chunk => {
-            chunks.push(Uint8Array.from(atob(base64Chunk), c => c.charCodeAt(0)));
-        });
-        socket.emit('download-zip', { 
-            foldername: foldername
-        }, (response) => {
-            if (!response.ok) {
-                throw new Error('Download failed');
-            }
-            const blob = new Blob(chunks, { type: "application/zip" });
-            const url = window.URL.createObjectURL(blob);
-            
-            // Trigger download
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'all-files.zip';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-
-            // Disconnect Socket upon completion
-            socket.disconnect();
-        });
-    } catch (error) {
-        if (socket) {socket.disconnect();}
-        console.error('Download error:', error);
+            bar:document.getElementById(`id-bar-inner-${id}`) 
+        };
     }
 };

@@ -1,16 +1,45 @@
+// import { BlobServiceClient } from "@azure/storage-blob";
+
 export class TableManager {
     constructor() {
         this.currentPage = 1;
         this.totalPages = 0;
         this.selectedRow = null;
+        this.pagination = null;
+        this.preloadedPages = new Map(); // Store pre-loaded pages
+        this.isSearchMode = false;
+        this.currentSearchTerm = '';
         
         document.addEventListener('DOMContentLoaded', () => {
             this.setupTableSorting();
-            this.loadPage(1);
-            
+            this.loadPageWithPreload(1);
+            this.setupPaginationListeners();
+            this.setupSearch();
+            this.setupFilters();
         });
     }
-
+    setupPaginationListeners() {
+        document.addEventListener('click', (e) => {
+            // Page number buttons
+            if (e.target.closest('#page-numbers') && e.target.tagName === 'BUTTON' && e.target.dataset.page) {
+                this.loadPageWithPreload(parseInt(e.target.dataset.page));
+            }
+            
+            // Previous button
+            if (e.target.closest('#prev-btn') || e.target.id === 'prev-btn') {
+                if (this.pagination?.has_previous) {
+                    this.loadPageWithPreload(this.pagination.current_page - 1);
+                }
+            }
+            
+            // Next button
+            if (e.target.closest('#next-btn') || e.target.id === 'next-btn') {
+                if (this.pagination?.has_next) {
+                    this.loadPageWithPreload(this.pagination.current_page + 1);
+                }
+            }
+        });
+    }
     setupTableSorting() {
         document.querySelectorAll('th').forEach(header => {
             header.addEventListener('click', () => {
@@ -34,55 +63,7 @@ export class TableManager {
         });
     }
 
-    async loadPage(page) {           
-        const response = await fetch(`/api/getQueries/${page}`);
-        if (!response.ok) {
-            throw new Error(`http Frontend Az Func error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        this.currentPage = data.pagination.current_page;
-        this.totalPages = data.pagination.total_pages;
-        
-        this.renderTable(data.items);
-        this.renderPagination(data.pagination);
-    }
-
-    renderTable(table_data_json) {
-        const tbody = document.getElementById('id_table_body');
-        
-        if (table_data_json.length === 0) {
-            const row = document.createElement('tr');
-            const cell = document.createElement('td');
-            cell.colSpan = 8;
-            cell.textContent = 'No table_data_json found';
-            row.appendChild(cell);
-            tbody.appendChild(row);
-            return;
-        }
-
-        for (let i = 0; i < table_data_json.length; i++) {
-            const row_data = table_data_json[i];
-            let rowElement = document.getElementById(`row_elem${i}`);
-            
-            if (rowElement) {
-                this.cr8orUpdateRow(row_data, i, true);
-            } else {
-                rowElement = this.cr8orUpdateRow(row_data, i, false);
-                tbody.appendChild(rowElement);
-            }
-            
-            rowElement.onclick = (event) => this.selectRow(event, i, row_data);
-            rowElement.classList.remove('active');
-            
-            if (row_data.status === "Completed") {
-                rowElement.classList.remove('disabled');
-            } else {
-                rowElement.classList.add('disabled');
-            }
-        }
-    }
-
+    // MOST IMPORTANT FUNCTION
     cr8orUpdateRow(table_row_dict, i, update) {
         const row = document.createElement('tr');
         row.id = `row_elem${i}`;
@@ -99,7 +80,7 @@ export class TableManager {
             let cellContent;
             switch (key) {
                 case "id":
-                    console.log(`id is here ${value}`)
+                    // console.log(`id is here ${value}`);
                     if (update){
                         const cell_update = document.getElementById(`td_${key}${i}`);
                         if (cell_update){
@@ -144,14 +125,17 @@ export class TableManager {
                     if (update){
                         const cell_update = document.getElementById(`td_span_${key}${i}`);
                         if (cell_update){
-                            cell_update.href = value;
-                            cell_update.setAttribute('data-url', value);
+                            cell_update.setAttribute('filename', table_row_dict["filename"]);
+                            cell_update.setAttribute('blob_folder', value);
+                            cell_update.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
                         }
                     } else {
                         const link = document.createElement('a');
                         const icon = document.createElement('i');
                         const text = document.createTextNode(' Download');
-                        link.href = value || '#';
+                        link.setAttribute('filename', table_row_dict["filename"]);
+                        link.setAttribute('blob_folder', value);
+                        link.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
                         link.id = `td_span_${key}${i}`;
                         link.className = 'download-btn';
                         icon.className = 'fas fa-download';
@@ -162,14 +146,14 @@ export class TableManager {
                     break;
                 case "status":
                     let hasError = table_row_dict.error === "True" || table_row_dict.error === true;
-                    console.log(`error is ${hasError} ${table_row_dict.error}`);
+                    // console.log(`error is ${hasError} ${table_row_dict.error}`);
                     if (update){
                         const cell_update = document.getElementById(`td_span_${key}${i}`);
                         if (cell_update){
                             cell_update.textContent = value;
                             if (hasError){
                                 cell_update.className = `status error`;
-                                console.log(`error is True ${hasError}`);
+                                // console.log(`error is True ${hasError}`);
                             } else {
                                 cell_update.className = `status completed`;
                             }
@@ -179,7 +163,7 @@ export class TableManager {
                         span.id = `td_span_${key}${i}`;
                         if (hasError){
                             span.className = `status error`;
-                            console.log(`error is True ${hasError}`);
+                            // console.log(`error is True ${hasError}`);
                         } else {
                             span.className = `status completed`;
                         }
@@ -190,15 +174,15 @@ export class TableManager {
                 case "logs_url":
                     if (update){
                         const link = document.getElementById(`td_link_${key}${i}`);
-                        if (link){
-                            link.href = `${value}`;
-                        }
+                        // if (link){
+                        //     link.href = `${value}`;
+                        // }
                     } else {
                         const link = document.createElement('a');
                         const icon = document.createElement('i');
                         const text = document.createTextNode(' View Logs');
                         link.id = `td_link_${key}${i}`;
-                        link.href = '#';
+                        // link.href = '#';
                         link.className = 'view-logs2';
                         icon.className = 'fas fa-list';
                         link.appendChild(icon);
@@ -209,9 +193,9 @@ export class TableManager {
                 case "date":
                     if (update){
                         const cell_update = document.getElementById(`td_${key}${i}`);
-                        if (cell_update){cell_update.textContent = value;}
+                        if (cell_update){cell_update.textContent = this.dateToHumanReadable(value);}
                     } else {
-                        cellContent = value || 'Today, 11:23 AM';
+                        cellContent = this.dateToHumanReadable(value) || 'Today, 11:23 AM';
                     }
                     break;
                 case "size":
@@ -240,7 +224,7 @@ export class TableManager {
         return row;
     }
 
-    async selectRow(event, rowIndex, rowData) {
+    async if_RowSelectedDisplayImages(event, rowIndex, rowData) {
         if (rowData.status !== "Completed") {
             return;
         }
@@ -257,9 +241,55 @@ export class TableManager {
         event.currentTarget.classList.add('active');
         this.selectedRow = rowData;
         
-        const img_ids = ["img-5"];
-        rowData.images = ["https://picsum.photos/200/150?random=12"];
-        await this.displayImages(rowData.images, img_ids);
+        const n_image = rowData.sideImages.length
+        const img_ids = [];
+        const imagePromises = [];
+        for (let i = 1; i <= n_image; i++) {
+            imagePromises.push(this.displayImageFromAzure(rowData.sideImages[i-1], `img-${i}`, 200, 300));
+        }
+        imagePromises.push(this.displayImageFromAzure(rowData.topImage, `img-top`, 600,300));
+
+        // Wait for all to complete
+        await Promise.all(imagePromises);
+    }
+
+    async displayImageFromAzure(imgUrl, img_id, w,h){
+        // const blobServiceClient = new BlobServiceClient(sas_url);
+        try {
+            const img = document.getElementById(img_id);
+            img.crossOrigin = "anonymous"; 
+            
+            // Create a new image for processing to avoid infinite loop
+            const tempImg = new Image();
+            tempImg.crossOrigin = "anonymous";
+            
+            tempImg.onload = () => {
+                console.log(`✅ Image loaded: ${img_id}`);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(tempImg, 0, 0, w, h);
+                const reshapedImageData = canvas.toDataURL('image/jpeg', 1.0);
+                
+                // Set the final image source ONCE
+                img.style.borderRadius = '20px';
+                img.style.overflow = 'hidden'; 
+                img.src = reshapedImageData;
+                console.log(`🎨 Image reshaped: ${img_id}`);
+            };
+            
+            tempImg.onerror = () => {
+                console.error(`❌ Image failed to load: ${img_id}`, imgUrl);
+            };
+            
+            // Start loading the original image
+            tempImg.src = imgUrl;
+            
+        } catch(error) {
+            console.error(`💥 displayImageFromAzure error for ${img_id}:`, error);
+        }
     }
 
     async displayImages(imageUrls, imd_ids) {
@@ -284,6 +314,79 @@ export class TableManager {
         }
     }
 
+    dateToHumanReadable(dateString) {
+        const dateObj = new Date(dateString);
+        const timeFormatter = new Intl.DateTimeFormat('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const inputDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        
+        const diffDays = Math.floor((today - inputDate) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return `Today, ${timeFormatter.format(dateObj)}`;
+        if (diffDays === 1) return `Yesterday, ${timeFormatter.format(dateObj)}`;
+        
+        return timeFormatter.format(dateObj); // Or any other format
+    }
+
+    renderTable(table_data_json) {
+        const tbody = document.getElementById('id_table_body');
+        
+        if (table_data_json.length === 0) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 8;
+            cell.textContent = 'No table_data_json found';
+            row.appendChild(cell);
+            tbody.appendChild(row);
+            return;
+        }
+        for (let i = 0; i < 5; i++) {
+            let rowElement = document.getElementById(`row_elem${i}`);
+            
+            if (i < table_data_json.length) {
+                // Has data for this row
+                const row_data = table_data_json[i];
+                
+                if (rowElement) {
+                    this.cr8orUpdateRow(row_data, i, true);
+                } else {
+                    rowElement = this.cr8orUpdateRow(row_data, i, false);
+                    tbody.appendChild(rowElement);
+                }
+                rowElement.onclick = (event) => this.if_RowSelectedDisplayImages(event, i, row_data);
+                rowElement.classList.remove('active');
+                
+                if (row_data.status === "Completed") {
+                    rowElement.classList.remove('disabled');
+                    const downloadBtn = rowElement.querySelector('.download-btn');
+                    if (downloadBtn) {
+                        downloadBtn.disabled = false;
+                        downloadBtn.style.pointerEvents = 'auto';
+                        downloadBtn.style.opacity = '1';
+                    }
+                } else {
+                    rowElement.classList.add('disabled');
+                    const downloadBtn = rowElement.querySelector('.download-btn');
+                    if (downloadBtn) {
+                        downloadBtn.disabled = true;
+                        downloadBtn.style.pointerEvents = 'none';
+                        downloadBtn.style.opacity = '0.5';
+                    }
+                }
+            } else {
+                // No data for this row - clear existing content
+                if (rowElement) {
+                    rowElement.remove();
+                }
+            }
+        }
+    }
     renderPagination(pagination) {
         const pageNumbers = document.getElementById('page-numbers');
         const prevBtn = document.getElementById('prev-btn');
@@ -306,17 +409,6 @@ export class TableManager {
                 </button>
             `;
         }).join('');
-        
-        // Add event listeners for page buttons
-        pageNumbers.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON' && e.target.dataset.page) {
-                this.loadPage(parseInt(e.target.dataset.page));
-            }
-        });
-        
-        // Add event listeners for previous/next buttons
-        prevBtn.onclick = () => pagination.has_previous && this.loadPage(pagination.current_page - 1);
-        nextBtn.onclick = () => pagination.has_next && this.loadPage(pagination.current_page + 1);
     }
 
     // Generate sliding window page numbers
@@ -365,20 +457,315 @@ export class TableManager {
         info.textContent = `Page ${pagination.current_page} of ${pagination.total_pages} (${pagination.total_items} total table_data_json)`;
     }
 
-    setupPaginationEvents() {
-        document.getElementById('prev-btn').addEventListener('click', () => {
-            if (this.currentPage > 1) {
-                this.loadPage(this.currentPage - 1);
-            }
-        });
 
-        document.getElementById('next-btn').addEventListener('click', () => {
-            if (this.currentPage < this.totalPages) {
-                this.loadPage(this.currentPage + 1);
+    /**########## PRELOAD PAGES!! ##############*/
+    async loadPageWithPreload(page) {
+        // console.log(`📄 Loading page ${page}`);
+        
+        // Check if page is pre-loaded
+        if (this.preloadedPages.has(page)) {
+            console.log(`⚡ Using pre-loaded page ${page}`);
+            const data = this.preloadedPages.get(page);
+            this.displayPageData(data);
+        } else {
+            // Load page normally
+            console.log(`🐢 Loading new-page from Az Server ${page}`);
+            const response = await fetch(`/api/getQueries/${page}`);
+            const data = await response.json();
+            this.displayPageData(data);
+        }
+        
+        // Pre-load next 2 pages when on page 1
+        if (page === 1) {
+            this.preloadPages([2, 3]);
+        }
+        // Pre-load surrounding pages for other pages
+        else {
+            this.preloadAdjacentPages(page);
+        }
+    }
+    
+    async preloadPages(pages) {
+        console.log(`🔮 Pre-loading pages: ${pages.join(', ')}`);
+        
+        pages.forEach(page => {
+            if (!this.preloadedPages.has(page)) {
+                fetch(`/api/getQueries/${page}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        this.preloadedPages.set(page, data);
+                        console.log(`✅ Pre-loaded page ${page}`);
+                    })
+                    .catch(err => console.error(`❌ Failed to pre-load page ${page}:`, err));
             }
         });
     }
+    
+    preloadAdjacentPages(currentPage) {
+        const pagesToPreload = [];
+        
+        // Pre-load next 2 pages
+        for (let i = 1; i <= 2; i++) {
+            const nextPage = currentPage + i;
+            if (nextPage <= this.totalPages && !this.preloadedPages.has(nextPage)) {
+                pagesToPreload.push(nextPage);
+            }
+        }
+        
+        // Pre-load previous page if not too far back
+        if (currentPage > 1 && !this.preloadedPages.has(currentPage - 1)) {
+            pagesToPreload.push(currentPage - 1);
+        }
+        
+        if (pagesToPreload.length > 0) {
+            this.preloadPages(pagesToPreload);
+        }
+    }
+    
+    displayPageData(data) {
+        this.currentPage = data.pagination.current_page;
+        this.totalPages = data.pagination.total_pages;
+        this.pagination = data.pagination;
+        
+        this.renderTable(data.items);
+        this.renderPagination(data.pagination);
+    }
+    /**##############    END    ########################*/
+    /**############# PRELOAD PAGES #####################*/
+    /**##############    END    #########################*/
+
+
+    /**#################################################*/
+    /**############# SEARCH PAGES #####################*/
+    /**#################################################*/
+    setupSearch() {
+        const searchInput = document.querySelector('.search-box input');
+        let searchTimeout;
+        
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (term.length === 0) {
+                this.clearSearch();
+                return;
+            }
+            
+            if (term.length < 2) return;
+            
+            searchTimeout = setTimeout(() => {
+                this.searchQueries(term);
+            }, 300);
+        });
+    }
+    
+    searchQueries(searchTerm) {
+        console.log(`🔍 Searching for: "${searchTerm}" in pre-loaded pages`);
+        this.isSearchMode = true;
+        this.currentSearchTerm = searchTerm;
+        
+        const allItems = [];
+        
+        // Collect all items from pre-loaded pages
+        for (const [pageNum, pageData] of this.preloadedPages) {
+            allItems.push(...pageData.items);
+        }
+        
+        // Search through filename, status, and other fields
+        const filteredItems = allItems.filter(item => 
+            item.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.tags && item.tags.some(tag => 
+                tag.toLowerCase().includes(searchTerm.toLowerCase())
+            ))
+        );
+        
+        console.log(`✅ Found ${filteredItems.length} results in pre-loaded data`);
+        this.renderSearchResults(filteredItems, searchTerm);
+    }
+    
+    renderSearchResults(items, searchTerm) {
+        const tbody = document.getElementById('id_table_body');
+        tbody.innerHTML = '';
+        
+        if (items.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="8">No results found for "${searchTerm}" in loaded data</td>`;
+            tbody.appendChild(row);
+        } else {
+            // Render all search results
+            items.forEach((item, index) => {
+                const rowElement = this.cr8orUpdateRow(item, index, false);
+                tbody.appendChild(rowElement);
+            });
+        }
+        
+        // Update search indicator (you might want to add this to your HTML)
+        this.updateSearchIndicator(searchTerm, items.length);
+    }
+    
+    updateSearchIndicator(searchTerm, resultCount) {
+        // Create or update search indicator
+        let indicator = document.querySelector('.search-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'search-indicator';
+            document.querySelector('.search-box').appendChild(indicator);
+        }
+        
+        indicator.textContent = `"${searchTerm}" - ${resultCount} results`;
+        indicator.style.color = resultCount === 0 ? '#ff4444' : '#22c55e';
+    }
+    
+    clearSearch() {
+        this.isSearchMode = false;
+        this.currentSearchTerm = '';
+        
+        // Remove search indicator
+        const indicator = document.querySelector('.search-indicator');
+        if (indicator) indicator.remove();
+        
+        // Return to normal paginated view
+        this.loadPageWithPreload(this.currentPage);
+    }
+
+
+
+    setupFilters() {
+        const statusFilter = document.querySelector('.filter-group select:nth-child(1)');
+        const timeRangeFilter = document.querySelector('.filter-group select:nth-child(2)');
+        
+        statusFilter.addEventListener('change', (e) => {
+            this.currentStatus = e.target.value;
+            this.applyFilters();
+        });
+        
+        timeRangeFilter.addEventListener('change', (e) => {
+            this.currentTimeRange = e.target.value;
+            this.applyFilters();
+        });
+    }
+    
+    applyFilters() {
+        console.log('🔍 Applying separate filters:', {
+            search: this.currentSearchTerm,
+            status: this.currentStatus,
+            timeRange: this.currentTimeRange
+        });
+        
+        const allItems = this.getAllPreloadedItems();
+        let filteredItems = allItems;
+        
+        // Apply each filter independently - no mixing logic
+        filteredItems = this.applySearchFilter(filteredItems);
+        filteredItems = this.applyStatusFilter(filteredItems);
+        filteredItems = this.applyTimeRangeFilter(filteredItems);
+        
+        console.log(`✅ ${filteredItems.length} items after filtering`);
+        this.renderFilteredResults(filteredItems);
+    }
+    getAllPreloadedItems() {
+        const allItems = [];
+        for (const [pageNum, pageData] of this.preloadedPages) {
+            allItems.push(...pageData.items);
+        }
+        return allItems;
+    }
+    
+    applyStatusFilter(items) {
+        const status = this.currentStatus.toLowerCase();
+        
+        switch(status) {
+            case 'all status':
+                return items;
+            case 'completed':
+                return items.filter(item => 
+                    item.status.toLowerCase().includes('completed') ||
+                    item.status.toLowerCase().includes('replaced')
+                );
+            case 'processing':
+                return items.filter(item => item.status.toLowerCase().includes('process'));
+            case 'error':
+                return items.filter(item => item.status.toLowerCase().includes('error'));
+            default:
+                return items;
+        }
+    }
+    
+    applyTimeRangeFilter(items) {
+        if (this.currentTimeRange === 'All Time') {
+            return items;
+        }
+        
+        const now = new Date();
+        let cutoffDate;
+        
+        switch(this.currentTimeRange) {
+            case 'Last 24 Hours':
+                cutoffDate = new Date(now - 24 * 60 * 60 * 1000);
+                break;
+            case 'Last 7 Days':
+                cutoffDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case 'Last 30 Days':
+                cutoffDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
+                break;
+            default:
+                return items;
+        }
+        
+        return items.filter(item => {
+            // Use your actual date key
+            console.log(item);
+            const itemDate = new Date(item.date);
+            return itemDate >= cutoffDate;
+        });
+    }
+    
+    applySearchFilter(items) {
+        if (!this.currentSearchTerm) {
+            return items;
+        }
+        
+        const searchTerm = this.currentSearchTerm.toLowerCase();
+        return items.filter(item => 
+            item.filename.toLowerCase().includes(searchTerm) ||
+            (item.tags && item.tags.some(tag => 
+                tag.toLowerCase().includes(searchTerm)
+            ))
+        );
+    }
+    
+    renderFilteredResults(items) {
+        const tbody = document.getElementById('id_table_body');
+        tbody.innerHTML = '';
+        
+        if (items.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="8">No matching items found</td>`;
+            tbody.appendChild(row);
+        } else {
+            items.forEach((item, index) => {
+                const rowElement = this.cr8orUpdateRow(item, index, false);
+                tbody.appendChild(rowElement);
+            });
+        }
+    }
+    
+    
+    showResultCount(count) {
+        const countEl = document.createElement('div');
+        countEl.className = 'result-count';
+        countEl.textContent = `${count} items`;
+        countEl.style.cssText = 'font-size: 12px; color: #16a34a; margin-top: 4px; font-weight: bold;';
+        document.querySelector('.filter-group').appendChild(countEl);
+    }
+
+
 }
+
+
 
 // Initialize the table manager
 export const tableManager = new TableManager();
