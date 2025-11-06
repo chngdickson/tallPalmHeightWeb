@@ -429,10 +429,15 @@ export class TableManager {
             await this.displayPageData(data);
         } else {
             // Load page normally
-            console.log(`🐢 Loading new-page from Az Server ${page}`);
-            const response = await fetch(`/api/getQueries/${page}`);
-            const data = await response.json();
-            await this.displayPageData(data);
+            try {
+                console.log(`🐢 Loading new-page from Az Server ${page}`);
+                const response = await fetch(`/api/getQueries/${page}`);
+                const data = await response.json();
+                await this.displayPageData(data);
+            }
+            catch (error){
+                console.log(`LoadPage API [getQueries] is sleeping, Azure Problem, Error: [${error}]`);
+            }
         }
         
         // Pre-load next 2 pages when on page 1

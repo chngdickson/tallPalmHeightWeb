@@ -1,6 +1,10 @@
+require('dotenv').config();
 const port = process.env.PORT || 3000;
 const domain = process.env.DOMAIN || 'localhost';
-require('dotenv').config();
+const az_domain = process.env.AZ_DOMAIN || "az-func-domain-name.azurewebsites.net";
+const FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || 'az-func-key';
+
+
 const express = require('express');
 const { BlobServiceClient } = require("@azure/storage-blob");
 const { AbortController } = require('@azure/abort-controller');
@@ -71,8 +75,7 @@ app.post('/api/getBlobToken2', async (req, res) => {
                 })
             });*/
         const { filename, gb } = req.body;
-        
-        const http_response = await fetch("http://localhost:7071/api/getBlobToken", {
+        const http_response = await fetch(`${az_domain}/api/getBlobToken?code=${FUNCTION_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename: filename, filesizeInGB: gb })
@@ -110,7 +113,7 @@ app.post('/api/getTokenPubSub', async (req, res) => {
     try {
         const { filename } = req.body;
         
-        const response = await fetch('http://localhost:7071/api/getTokenPubSub', {
+        const response = await fetch(`${az_domain}/api/getTokenPubSub?code=${FUNCTION_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename: filename })
@@ -141,7 +144,7 @@ app.get(`/api/getQueries/:page`, async (req, res) => {
 	*/
     const page = req.params.page; // Will be "1"
     console.log(`page is : ${page}`);
-    const response = await fetch(`http://localhost:7071/api/getQueries/${page}`, {
+    const response = await fetch(`${az_domain}/api/getQueries/${page}?code=${FUNCTION_KEY}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
     });
@@ -179,7 +182,7 @@ io.on('connection', (socket) => {
 			#### Backend API calls #####
 			*/
 			const {filename, blob_folder} = data;
-				const http_response = await fetch(`http://localhost:7071/api/getDownloadBlobToken/`, {
+				const http_response = await fetch(`${az_domain}/api/getDownloadBlobToken/`, {
 				method: 'GET',
 				headers: { 'Content-Type': 'application/json' },
 			});

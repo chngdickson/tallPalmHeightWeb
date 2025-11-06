@@ -539,10 +539,10 @@ blobServiceClient.uploadData(data), {
             return false;
         }
         
-        if (file.size < 1 * 1024 * 1024) {
-            this.dom.showNotification(`File "${file.name}" is below 1MB limit.`, 'error');
-            return false;
-        }
+        // if (file.size < 1 * 1024 * 1024) {
+        //     this.dom.showNotification(`File "${file.name}" is below 1MB limit.`, 'error');
+        //     return false;
+        // }
         
         return true;
     }
