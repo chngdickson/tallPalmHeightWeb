@@ -1,2 +1,3 @@
 /public/node_modules
 /node_modules
+public/dist/     # Built files - don't commit

@@ -94,8 +94,18 @@ export class TableManager {
                     if (update){
                         const link = document.getElementById(`td_link_${key}${i}`);
                         if (link){
-                            link.innerText = `${value}`;
-                            link.href = value;
+                            link.innerHTML = '';
+                            
+                            // Rebuild the link with icon and classes
+                            const icon = document.createElement('i');
+                            const text = document.createTextNode(`${value}`);
+                            
+                            icon.className = 'fas fa-file file-icon2';
+                            link.appendChild(icon);
+                            link.appendChild(text);
+                            
+                            link.href = '#';
+                            link.className = 'view-logs2';
                             link.setAttribute('data-url', value);
                         }
                     } else {
@@ -242,77 +252,27 @@ export class TableManager {
         this.selectedRow = rowData;
         
         const n_image = rowData.sideImages.length
-        const img_ids = [];
-        const imagePromises = [];
         for (let i = 1; i <= n_image; i++) {
-            imagePromises.push(this.displayImageFromAzure(rowData.sideImages[i-1], `img-${i}`, 200, 300));
+            await this.displayImageFromAzure(rowData.sideImages[i-1], `img-${i}`, 200, 300);
         }
-        imagePromises.push(this.displayImageFromAzure(rowData.topImage, `img-top`, 600,300));
+        await this.displayImageFromAzure(rowData.topImage, `img-top`, 600,300);
 
-        // Wait for all to complete
-        await Promise.all(imagePromises);
     }
 
-    async displayImageFromAzure(imgUrl, img_id, w,h){
-        // const blobServiceClient = new BlobServiceClient(sas_url);
+    async displayImageFromAzure(imgUrl, img_id, w, h) {
         try {
-            const img = document.getElementById(img_id);
-            img.crossOrigin = "anonymous"; 
-            
-            // Create a new image for processing to avoid infinite loop
-            const tempImg = new Image();
-            tempImg.crossOrigin = "anonymous";
-            
-            tempImg.onload = () => {
-                console.log(`✅ Image loaded: ${img_id}`);
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+            const imgEl = document.getElementById(img_id);
+            // Assign to your target image
+            imgEl.src = imgUrl;
+            imgEl.width = w;
+            imgEl.height = h;
 
-                canvas.width = w;
-                canvas.height = h;
-                ctx.drawImage(tempImg, 0, 0, w, h);
-                const reshapedImageData = canvas.toDataURL('image/jpeg', 1.0);
-                
-                // Set the final image source ONCE
-                img.style.borderRadius = '20px';
-                img.style.overflow = 'hidden'; 
-                img.src = reshapedImageData;
-                console.log(`🎨 Image reshaped: ${img_id}`);
-            };
-            
-            tempImg.onerror = () => {
-                console.error(`❌ Image failed to load: ${img_id}`, imgUrl);
-            };
-            
-            // Start loading the original image
-            tempImg.src = imgUrl;
-            
-        } catch(error) {
+            console.log(`✅ Loaded & resized ${img_id}`);
+        } catch (error) {
             console.error(`💥 displayImageFromAzure error for ${img_id}:`, error);
         }
     }
 
-    async displayImages(imageUrls, imd_ids) {
-        console.log(`display Images`);
-        
-        if (imageUrls.length === 0) {
-            return;
-        }
-        
-        for (const imageUrl of imageUrls) {
-            try {
-                const img = document.getElementById("img-5");
-                if (img){
-                    console.log(`Loaded Image`);
-                    img.src = imageUrl;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
-            } catch (error) {
-                console.error(`Failed to load image: ${imageUrl}`, error);
-            }
-        }
-    }
 
     dateToHumanReadable(dateString) {
         const dateObj = new Date(dateString);
@@ -334,7 +294,7 @@ export class TableManager {
         return timeFormatter.format(dateObj); // Or any other format
     }
 
-    renderTable(table_data_json) {
+    async renderTable(table_data_json) {
         const tbody = document.getElementById('id_table_body');
         
         if (table_data_json.length === 0) {
@@ -359,7 +319,7 @@ export class TableManager {
                     rowElement = this.cr8orUpdateRow(row_data, i, false);
                     tbody.appendChild(rowElement);
                 }
-                rowElement.onclick = (event) => this.if_RowSelectedDisplayImages(event, i, row_data);
+                rowElement.onclick = async (event) => await this.if_RowSelectedDisplayImages(event, i, row_data);
                 rowElement.classList.remove('active');
                 
                 if (row_data.status === "Completed") {
@@ -466,13 +426,13 @@ export class TableManager {
         if (this.preloadedPages.has(page)) {
             console.log(`⚡ Using pre-loaded page ${page}`);
             const data = this.preloadedPages.get(page);
-            this.displayPageData(data);
+            await this.displayPageData(data);
         } else {
             // Load page normally
             console.log(`🐢 Loading new-page from Az Server ${page}`);
             const response = await fetch(`/api/getQueries/${page}`);
             const data = await response.json();
-            this.displayPageData(data);
+            await this.displayPageData(data);
         }
         
         // Pre-load next 2 pages when on page 1
@@ -522,12 +482,12 @@ export class TableManager {
         }
     }
     
-    displayPageData(data) {
+    async displayPageData(data) {
         this.currentPage = data.pagination.current_page;
         this.totalPages = data.pagination.total_pages;
         this.pagination = data.pagination;
         
-        this.renderTable(data.items);
+        await this.renderTable(data.items);
         this.renderPagination(data.pagination);
     }
     /**##############    END    ########################*/

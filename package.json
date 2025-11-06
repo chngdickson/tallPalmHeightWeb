@@ -1,11 +1,12 @@
 {
   "name": "tallpalmheightweb",
   "version": "1.0.0",
-  "description": "",
+  "description": "RUN ``` npm run start```",
   "main": "index.js",
   "scripts": {
     "dev": "NODE_ENV=development DOMAIN=localhost node server.js",
-    "start": "NODE_ENV=production node server.js"
+    "start": "NODE_ENV=production node server.js",
+    "build": "node build.js"
   },
   "repository": {
     "type": "git",
@@ -20,7 +21,9 @@
   "homepage": "https://github.com/chngdickson/tallPalmHeightWeb#readme",
   "dependencies": {
     "@azure/abort-controller": "^2.1.2",
+    "@azure/cosmos": "^4.7.0",
     "@azure/storage-blob": "^12.29.1",
+    "@azure/web-pubsub-client": "^1.0.2",
     "archiver": "^7.0.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -29,6 +32,7 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.25.12"
   }
 }

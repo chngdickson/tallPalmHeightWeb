@@ -6,12 +6,11 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Tall Palm Height</title>
-        <a href="/data.html">data</a>
         <link rel="stylesheet" href="./src/css/main.css">
         <link rel="icon" href="favicon.ico" type="image/x-icon">
         <link rel="sdgIcon" href="./src/images/sdg-logo-white.png" type="image/x-icon">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <script type="importmap">
+        <!-- <script type="importmap">
         {
             "imports": {
                 "@azure/web-pubsub-client": "https://cdn.jsdelivr.net/npm/@azure/web-pubsub-client@latest/+esm",
@@ -19,16 +18,28 @@
                 "@azure/cosmos": "https://cdn.jsdelivr.net/npm/@azure/cosmos@latest/+esm"
             }
         }
-        </script>
-        <script type="module">
+        </script> -->
+        <!-- <script type="module">
             import { WebPubSubClient } from "@azure/web-pubsub-client";
             import { BlobServiceClient, BlockBlobClient} from "@azure/storage-blob";
             import { CosmosClient } from "@azure/cosmos";
             console.log("All Azure SDKs imported via CDN");
+        </script> -->
+        <script type="module">
+            import { 
+                BlobServiceClient, 
+                WebPubSubClient, 
+                CosmosClient 
+            } from './dist/bundle.js';  // From public/dist/
+            window.BlobServiceClient = BlobServiceClient;
+            window.WebPubSubClient = WebPubSubClient;
+            window.CosmosClient = CosmosClient;
         </script>
         <script type="module" src="./src/js/main.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script type="module" src="./src/js/components/upload_multi2.js" defer></script>
+
+        <a href="/data.html"></a>
     </head>
 
     <body>

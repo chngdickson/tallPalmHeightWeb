@@ -1,5 +1,11 @@
-import { WebPubSubClient } from "@azure/web-pubsub-client";
-import { BlobServiceClient } from "@azure/storage-blob";
+// import { WebPubSubClient } from "@azure/web-pubsub-client";
+// import { BlobServiceClient } from "@azure/storage-blob";
+import { 
+    BlobServiceClient, 
+    WebPubSubClient, 
+    CosmosClient 
+} from '../../../dist/bundle.js';
+
 function IsJson(str){
     try {
         JSON.parse(str);
@@ -147,7 +153,7 @@ class UploadDOM {
         this.elements.totalFiles.textContent = fileCount;
         this.elements.totalSize.textContent = this.formatFileSize(totalSizeValue);
         
-        const estimatedTime = Math.round(totalSizeValue / (1024 * 1024) * 0.3) + 2;
+        const estimatedTime = Math.round(totalSizeValue / (1024 * 1024) * 0.8) + 2;
         this.elements.processTime.textContent = `${estimatedTime}s`;
     }
     
@@ -301,13 +307,25 @@ class FileProcessor {
         this.uploadQueue = [...this.files];
 
         // Loop Through all the files
-        const initialCount = this.uploadQueue.length;
-        for (let i = 0; i < initialCount; i++) {
-            const file = this.uploadQueue[i]
-            await this.processFile(file).finally(() => {
-                this.activeUploads--;
-            });
+        const CONCURRENT_UPLOADS = 3;
+        
+        for (let i = 0; i < this.files.length; i += CONCURRENT_UPLOADS) {
+            const batch = this.files.slice(i, i + CONCURRENT_UPLOADS);
+            const batchPromises = batch.map(file => 
+                this.processFile(file).finally(() => {
+                    this.activeUploads--;
+                })
+            );
+            
+            await Promise.all(batchPromises);
         }
+        // const initialCount = this.uploadQueue.length;
+        // for (let i = 0; i < initialCount; i++) {
+        //     const file = this.uploadQueue[i]
+        //     await this.processFile(file).finally(() => {
+        //         this.activeUploads--;
+        //     });
+        // }
         this.dom.showSection('uploadBtn', false);
     }
     
@@ -371,69 +389,6 @@ blobServiceClient.uploadData(data), {
             return false;
         }
     }
-    // async uploadToAzure2(file) {
-    //     let socket = null;
-        
-    //     try {
-    //         socket = io();
-            
-    //         socket.on('connect', () => {
-    //             console.log('✅ Connected to server');
-    //         });
-
-    //         socket.on('connect_error', (error) => {
-    //             console.error('❌ Connection failed:', error);
-    //             this.markFileAsError(file, `Connection failed: ${error.message}`);
-    //         });
-
-    //         socket.on('upload-progress', (data) => {
-    //             console.log('Progress received:', data.percent);
-    //             this.dom.updateProgress(file.name, 'upload', data.percent);
-    //         });
-    //         console.log(`File Being sent to backend Nodejs... \n[filename ${file.name}, GB: ${this.filesizeInGB(file)}]`)
-    //         socket.emit('getBlobToken', { 
-    //             filename: file.name, 
-    //             gb: this.filesizeInGB(file), 
-    //             file: file 
-    //         }, (response) => {
-    //             // Close socket on success or error
-    //             if (response.success) {
-    //                 const primary_endpoint = response_json.primary_endpoint;
-    //                 const sas_token = response_json.sas_token;
-    //                 const container_name = response_json.container_name;
-    //                 const blob_name = response_json.blob_name; 
-    //                 const sas_url = `${primary_endpoint}?${sas_token}`;
-                    
-    //                 const blobServiceClient = new BlobServiceClient(sas_url);
-    //                 const containerClient = blobServiceClient.getContainerClient(container_name);
-    //                 const blockBlobClient = containerClient.getBlockBlobClient(blob_name);
-                    
-    //                 await blockBlobClient.uploadData(file, {
-    //                     onProgress: (progress) => {
-    //                         const percent = Math.round((progress.loadedBytes / file.length) * 100);
-    //                         console.log(`Progress: ${percent}%`);
-    //                         // Upload Progress Socket!!!
-    //                         socket.emit('upload-progress', { percent });
-    //                     },
-    //                 });
-    //             } else {
-    //                 console.error('Upload failed:', response.error);
-    //                 this.markFileAsError(file, `Upload Error: ${response.error}`);
-    //             }
-                
-    //             socket.disconnect();
-    //         });
-
-    //         return true;
-            
-    //     } catch(error) {
-    //         if (socket) {
-    //             socket.disconnect(); // Close socket on catch error
-    //         }
-    //         this.markFileAsError(file, `Upload Error: ${error.message}`);
-    //         return false;
-    //     }
-    // }
     /** ===== END: Upload ========== */
 
 
