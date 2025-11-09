@@ -75,9 +75,12 @@ app.post('/api/getBlobToken2', async (req, res) => {
                 })
             });*/
         const { filename, gb } = req.body;
-        const http_response = await fetch(`${az_domain}/api/getBlobToken?code=${FUNCTION_KEY}`, {
+        const http_response = await fetch(`${az_domain}/api/getBlobToken`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+					'Content-Type': 'application/json',
+					'x-functions-key': FUNCTION_KEY
+				},
                 body: JSON.stringify({ filename: filename, filesizeInGB: gb })
             });
 
@@ -113,9 +116,12 @@ app.post('/api/getTokenPubSub', async (req, res) => {
     try {
         const { filename } = req.body;
         
-        const response = await fetch(`${az_domain}/api/getTokenPubSub?code=${FUNCTION_KEY}`, {
+        const response = await fetch(`${az_domain}/api/getTokenPubSub`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+			headers: { 
+				'Content-Type': 'application/json',
+				'x-functions-key': FUNCTION_KEY
+			},
             body: JSON.stringify({ filename: filename })
         });
 
@@ -142,11 +148,15 @@ app.get(`/api/getQueries/:page`, async (req, res) => {
     /* Frontend api : 
 		const response = await fetch(`/api/getQueries/${page}`);
 	*/
+	console.log(`${az_domain}/api/getQueries`);
     const page = req.params.page; // Will be "1"
     console.log(`page is : ${page}`);
-    const response = await fetch(`${az_domain}/api/getQueries/${page}?code=${FUNCTION_KEY}`, {
+    const response = await fetch(`${az_domain}/api/getQueries/${page}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+		headers: { 
+			'Content-Type': 'application/json',
+			'x-functions-key': FUNCTION_KEY
+		}
     });
     if (!response.ok) {
         throw new Error(`http Az Func error! status: ${response.status}`);
@@ -184,7 +194,10 @@ io.on('connection', (socket) => {
 			const {filename, blob_folder} = data;
 				const http_response = await fetch(`${az_domain}/api/getDownloadBlobToken/`, {
 				method: 'GET',
-				headers: { 'Content-Type': 'application/json' },
+                headers: { 
+					'Content-Type': 'application/json',
+					'x-functions-key': FUNCTION_KEY
+				}
 			});
 			if (!http_response.ok){throw new Error(`Az Func get Blob Error`);}
 			
