@@ -467,7 +467,8 @@ blobServiceClient.uploadData(data), {
                         }
                         
                         if (completion && status === "store"){
-                            let tree_count = json_msg["tree_count"];;
+                            const tree_count = json_msg["tree_count"];
+                            console.log(tree_count);
                             this.delay(5000);
                             this.markFileAsCompleted(file, tree_count);
                             client_obj.stop()
@@ -596,7 +597,7 @@ blobServiceClient.uploadData(data), {
     markFileAsCompleted(file, result) {
         const fileItem = this.dom.createCompletedFileItem(
             file,
-            `Success! ${result.treeCount} trees detected`,
+            `Success! ${result} trees detected`,
             '#2ecc71',
             '#e7f6e9',
             false

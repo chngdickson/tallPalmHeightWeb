@@ -2,7 +2,9 @@ require('dotenv').config();
 const port = process.env.PORT || 3000;
 const domain = process.env.DOMAIN || 'localhost';
 const az_domain = process.env.AZ_DOMAIN || "az-func-domain-name.azurewebsites.net";
-const FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || 'az-func-key';
+const protocol = az_domain.includes('localhost') ? 'http' : 'https';
+const full_url = `${protocol}://${az_domain}`;
+const AZURE_FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || 'az-func-key';
 
 
 const express = require('express');
@@ -75,11 +77,11 @@ app.post('/api/getBlobToken2', async (req, res) => {
                 })
             });*/
         const { filename, gb } = req.body;
-        const http_response = await fetch(`${az_domain}/api/getBlobToken`, {
+        const http_response = await fetch(`${full_url}/api/getBlobToken`, {
                 method: 'POST',
                 headers: { 
 					'Content-Type': 'application/json',
-					'x-functions-key': FUNCTION_KEY
+					'x-functions-key': AZURE_FUNCTION_KEY
 				},
                 body: JSON.stringify({ filename: filename, filesizeInGB: gb })
             });
@@ -116,11 +118,11 @@ app.post('/api/getTokenPubSub', async (req, res) => {
     try {
         const { filename } = req.body;
         
-        const response = await fetch(`${az_domain}/api/getTokenPubSub`, {
+        const response = await fetch(`${full_url}/api/getTokenPubSub`, {
             method: 'POST',
 			headers: { 
 				'Content-Type': 'application/json',
-				'x-functions-key': FUNCTION_KEY
+				'x-functions-key': AZURE_FUNCTION_KEY
 			},
             body: JSON.stringify({ filename: filename })
         });
@@ -148,14 +150,14 @@ app.get(`/api/getQueries/:page`, async (req, res) => {
     /* Frontend api : 
 		const response = await fetch(`/api/getQueries/${page}`);
 	*/
-	console.log(`${az_domain}/api/getQueries`);
+	console.log(`${full_url}/api/getQueries`);
     const page = req.params.page; // Will be "1"
     console.log(`page is : ${page}`);
-    const response = await fetch(`${az_domain}/api/getQueries/${page}`, {
+    const response = await fetch(`${full_url}/api/getQueries/${page}`, {
         method: 'GET',
 		headers: { 
 			'Content-Type': 'application/json',
-			'x-functions-key': FUNCTION_KEY
+			'x-functions-key': AZURE_FUNCTION_KEY
 		}
     });
     if (!response.ok) {
@@ -192,11 +194,11 @@ io.on('connection', (socket) => {
 			#### Backend API calls #####
 			*/
 			const {filename, blob_folder} = data;
-				const http_response = await fetch(`${az_domain}/api/getDownloadBlobToken/`, {
+				const http_response = await fetch(`${full_url}/api/getDownloadBlobToken/`, {
 				method: 'GET',
                 headers: { 
 					'Content-Type': 'application/json',
-					'x-functions-key': FUNCTION_KEY
+					'x-functions-key': AZURE_FUNCTION_KEY
 				}
 			});
 			if (!http_response.ok){throw new Error(`Az Func get Blob Error`);}
