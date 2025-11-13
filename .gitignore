@@ -4,3 +4,4 @@ public/dist/     # Built files - don't commit
 *.env
 env
 .env
+.env

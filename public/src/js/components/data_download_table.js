@@ -188,16 +188,22 @@ export class TableManager {
                         //     link.href = `${value}`;
                         // }
                     } else {
-                        const link = document.createElement('a');
-                        const icon = document.createElement('i');
-                        const text = document.createTextNode(' View Logs');
-                        link.id = `td_link_${key}${i}`;
-                        // link.href = '#';
-                        link.className = 'view-logs2';
-                        icon.className = 'fas fa-list';
-                        link.appendChild(icon);
-                        link.appendChild(text);
-                        cellContent = link;
+                        try {
+                            const link = document.createElement('a');
+                            const icon = document.createElement('i');
+                            const text = document.createTextNode(' View Logs');
+                            link.id = `td_link_${key}${i}`;
+                            // link.href = '#';
+                            link.className = 'view-logs2';
+                            icon.className = 'fas fa-list';
+                            link.appendChild(icon);
+                            link.appendChild(text);
+                            cellContent = link;
+                        }
+                        catch (exeption){
+                            console.log(`logs_url`);
+                        }
+
                     }
                     break;
                 case "date":
