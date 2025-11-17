@@ -68,7 +68,7 @@ export class TableManager {
         const row = document.createElement('tr');
         row.id = `row_elem${i}`;
         
-        const myOrder = ["id","filename","coordinates","processed_url","status","logs_url", "date","size"];
+        const myOrder = ["id","filename","coordinates","processed_url","status", "date","size"];
         const sortedDict = {};
         myOrder.forEach(key => {
             if (key in table_row_dict) {
@@ -138,6 +138,7 @@ export class TableManager {
                             cell_update.setAttribute('filename', table_row_dict["filename"]);
                             cell_update.setAttribute('blob_folder', value);
                             cell_update.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
+                            cell_update.setAttribute('processed_url',  table_row_dict["processed_url"])
                         }
                     } else {
                         const link = document.createElement('a');
@@ -146,6 +147,7 @@ export class TableManager {
                         link.setAttribute('filename', table_row_dict["filename"]);
                         link.setAttribute('blob_folder', value);
                         link.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
+                        link.setAttribute('processed_url',  table_row_dict["processed_url"])
                         link.id = `td_span_${key}${i}`;
                         link.className = 'download-btn';
                         icon.className = 'fas fa-download';

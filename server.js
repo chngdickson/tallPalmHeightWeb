@@ -8,12 +8,10 @@ const AZURE_FUNCTION_KEY = process.env.AZURE_FUNCTION_KEY || 'az-func-key';
 
 
 const express = require('express');
-const { BlobServiceClient } = require("@azure/storage-blob");
-const { AbortController } = require('@azure/abort-controller');
+const { finished } = require('stream/promises');
+const { BlockBlobClient } = require("@azure/storage-blob");
 const { PassThrough } = require("stream");
-const archiver = require('archiver');
 const fs = require("fs");
-const path = require("path");
 
 //=============== Initialization ======================//
 // App Imports
@@ -193,86 +191,67 @@ io.on('connection', (socket) => {
 			
 			#### Backend API calls #####
 			*/
-			const {filename, blob_folder} = data;
+			const {filename, blob_folder, processed_url} = data;
 				const http_response = await fetch(`${full_url}/api/getDownloadBlobToken/`, {
-				method: 'GET',
+				method: 'POST',
                 headers: { 
 					'Content-Type': 'application/json',
 					'x-functions-key': AZURE_FUNCTION_KEY
-				}
+				},
+				body: JSON.stringify({ processed_url: processed_url, filename: filename })
 			});
 			if (!http_response.ok){throw new Error(`Az Func get Blob Error`);}
 			
-			const response_json = await http_response.json();
-			const primary_endpoint = response_json["primary_endpoint"];
-			const sas_token = response_json["sas_token"];
-			const container_name = response_json["container_name"];
-			const sas_url = `${primary_endpoint}?${sas_token}`;
-			const blobServiceClient = new BlobServiceClient(sas_url);
-			const containerClient = blobServiceClient.getContainerClient(container_name);
-			// List Folders in Azure
-			let streamDict = {};
-			let totalBytes = 0;
-			let bytesProcessed = 0;
+			const response_json 	= await http_response.json();
+			const sas_token 		= response_json["sas_token"];
+			const blobClient = new BlockBlobClient(sas_token);
+
 			let zip_filename = `${filenameWithoutExtension(filename)}.zip`;
+			const output = fs.createWriteStream(zip_filename);
+			const passthrough = new PassThrough();
+
+			const response = await blobClient.download(0);
+			const properties = await blobClient.getProperties();
+			const readableStream = response.readableStreamBody;
+			// List Folders in Azure
+			let totalBytes = properties.contentLength;
+			let bytesProcessed = 0;
+			console.log(totalBytes);
+			
+			readableStream.pipe(passthrough).pipe(output);
 
 			
-			const output = fs.createWriteStream(zip_filename);
-			const archive = archiver('zip', { 
-				zlib: { level: 9 } ,
-				highWaterMark: 1024 * 1024
-			});
-			const passthrough = new PassThrough();
-			archive.pipe(passthrough);
 			passthrough.on("data", chunk => {
 				// console.log("Chunk size:", chunk.length); // see small increments
 				bytesProcessed += chunk.length;
 				socket.emit("zipChunk", chunk.toString("base64"));
-				// socket.emit('zipping-progress', { stage: "zipping", percent: (bytesProcessed/totalBytes)*100});
+				console.log((bytesProcessed/totalBytes)*95);
+				socket.emit('zipping-progress', { stage: "zipping", percent: (bytesProcessed/totalBytes)*95});
 			});
-			archive.on('warning', (err) => {
+			passthrough.on('warning', (err) => {
 				console.warn('Archive warning:', err);
 			});
-			archive.on('error', (err) => {
+			passthrough.on('error', (err) => {
 				console.error('Archive error:', err);
 				if (!callback.headersSent) {callback({ ok: false, error: 'Archive error'});}
 			});
-			archive.on("finish", () => {
-				// socket.emit('zipping-progress', { stage: "zipping", percent: 100});
+			passthrough.on("finish", () => {
+				socket.emit('zipping-progress', { stage: "zipping", percent: 100});
 			});
 			output.on('close', () => {
-				console.log(archive.pointer() + ' total bytes');
+				// console.log(archive.pointer() + ' total bytes');
 				console.log('archiver has been finalized and the output file descriptor has closed.');
+				// socket.emit('zipping-progress', { stage: "zipping", percent: 100});
 			});
-			
-			const azureBlobs = [];
-			for await (const blob of containerClient.listBlobsFlat()) {
-				azureBlobs.push(blob);
-			}
-			let i = 0;
-			let len_blobs = Object.keys(azureBlobs).length;
-			console.log(len_blobs);
-			for (const blob of azureBlobs) {  // Use for...of, not for...in
-				i++;
-				const blobName = blob.name;   // Now blob is the actual blob object
-				
-				if (blobName.startsWith(blob_folder)) {
-					const blobClient = containerClient.getBlobClient(blobName);  // You were missing this!
-					const response = await blobClient.download(0);
-					const readableStream = response.readableStreamBody;
-					totalBytes += blob.properties.contentLength;
-					archive.append(readableStream, { name: blobName });
 
-					readableStream.on('error', (err) => console.error(`Stream error for ${blobName}:`, err));
-					socket.emit('zipping-progress', { 
-						stage: "zipping", percent: (i/len_blobs)*100
-					});
-				}
-			}
+			output.on('error', (err) => console.error(`Stream error for ${blobName}:`, err));
+			
 			console.log("all blobs are streamed");
-			socket.emit('zipping-progress', { stage: "zipping", percent: 100});
-			await archive.finalize();
-            callback({ ok: true, data: response_json, zip_filename: zip_filename});
+			// socket.emit('zipping-progress', { stage: "zipping", percent: 100});
+			// await passthrough.finalize();
+			await finished(output);
+			callback({ ok: true, data: response_json, zip_filename: zip_filename});
+            
             
         } catch (error) {
 			if (socket){

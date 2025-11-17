@@ -11,8 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let filename = downloadBtn.getAttribute('filename');
             let blob_folder = downloadBtn.getAttribute('blob_folder');
             let container_name = downloadBtn.getAttribute('container_name');
+            let processed_url = downloadBtn.getAttribute('processed_url')
             console.log(`${filename} ${blob_folder} ${container_name} ${fileName_fromFilenameButton}`);
-            await downloadallBlobZipProgress(filename, blob_folder);
+            await downloadallBlobZipProgress(filename, blob_folder, processed_url);
         }
     });
     document.querySelector('.export-btn').addEventListener('click', () => {
@@ -21,20 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-async function downloadallBlobZipProgress(filename, blob_folder){
+async function downloadallBlobZipProgress(filename, blob_folder, processed_url){
     let socket = null;
     let chunks = [];
     let percentage = 0; 
     const prog = create_HTML_Zip_PopUp(filename);
     try{
         socket = io();
-        socket.on('connect', () => {console.log('✅ Connected to server');});
+        socket.on('connect', () => {console.log(`✅ Connected to server, ${socket.id}`);});
         socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error); alert("Connect Error during downloading!");});
         socket.on('zipping-progress', (data) => {
-            // console.log('Progress received:', data);
             if (!prog.ok){alert("Hey, we got DOM error while downloading!");}
-            
             percentage = data.percent.toFixed(1);
+            // console.log('Progress received:', data);
+            // console.log(percentage);
             if (prog.ok && data.stage ==="init"){
                 prog.bar.style.width = `${percentage}%`;
                 prog.percentText.textContent = `${percentage}%`;
@@ -56,15 +57,18 @@ async function downloadallBlobZipProgress(filename, blob_folder){
             }
         });
         socket.on("zipChunk", base64Chunk => {
+            // console.log(base64Chunk);
             chunks.push(Uint8Array.from(atob(base64Chunk), c => c.charCodeAt(0)));
         });
         socket.emit('download-zip', { 
             filename: filename,
-            blob_folder : blob_folder
+            blob_folder : blob_folder,
+            processed_url: processed_url
         }, (response) => {
             if (!response.ok) {
                 throw new Error('Download failed');
             }
+            console.log("received response");
             const blob = new Blob(chunks, { type: "application/zip" });
             const url = window.URL.createObjectURL(blob);
             
