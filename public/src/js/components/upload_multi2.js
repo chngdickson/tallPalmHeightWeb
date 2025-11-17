@@ -371,12 +371,36 @@ blobServiceClient.uploadData(data), {
                 const ONE_MB = 1_048_576;
                 await blockBlobClient.uploadData(file, {
                     onProgress: (progress) => {
-                        const percent = Math.round((progress.loadedBytes / file.size) * 100);
+                        const percent = Math.round((progress.loadedBytes / file.size) * 90);
                         console.log(`Progress: ${percent}%`);
                         this.dom.updateProgress(file.name, 'upload', percent);
                     },
                     maxSingleShotSize: 1 * ONE_MB,
                 });
+
+                let blobExists = false;
+                let attempts = 0;
+                const maxAttempts = 60;
+                const delayMs = 1000;
+
+                while (!blobExists && attempts < maxAttempts) {
+                    try {
+                        blobExists = await blockBlobClient.exists();
+                        
+                        if (blobExists) {
+                            this.dom.updateProgress(file.name, 'upload', 100);
+                            break;
+                        } else {
+                            await new Promise(resolve => setTimeout(resolve, delayMs));
+                        }
+                        attempts++;
+                    } catch (error) {
+                        console.error(`Error checking blob existence: ${error.message}`);
+                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                        attempts++;
+                    }
+                }
+                this.dom.updateProgress(file.name, 'upload', 100);
             } else {
                 console.error('Upload failed:', response.error);
                 this.markFileAsError(file, `Upload Error: ${response.error}`);
