@@ -377,7 +377,10 @@ blobServiceClient.uploadData(data), {
                     },
                     maxSingleShotSize: 1 * ONE_MB,
                 });
-
+                const metadata = {
+                    ok: 'true',
+                };
+                await blockBlobClient.setMetadata(metadata);
                 let blobExists = false;
                 let attempts = 0;
                 const maxAttempts = 60;
