@@ -68,7 +68,7 @@ export class TableManager {
         const row = document.createElement('tr');
         row.id = `row_elem${i}`;
         
-        const myOrder = ["id","filename","coordinates","processed_url","status", "date","size"];
+        const myOrder = ["id","filename","coordinates","processed_url","csv_url","status","date","size"];
         const sortedDict = {};
         myOrder.forEach(key => {
             if (key in table_row_dict) {
@@ -136,18 +136,44 @@ export class TableManager {
                         const cell_update = document.getElementById(`td_span_${key}${i}`);
                         if (cell_update){
                             cell_update.setAttribute('filename', table_row_dict["filename"]);
-                            cell_update.setAttribute('blob_folder', value);
+                            cell_update.setAttribute('filetype', "zip");
                             cell_update.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
                             cell_update.setAttribute('processed_url',  table_row_dict["processed_url"])
                         }
                     } else {
                         const link = document.createElement('a');
                         const icon = document.createElement('i');
-                        const text = document.createTextNode(' Download');
+                        const text = document.createTextNode(' Download ZIP');
                         link.setAttribute('filename', table_row_dict["filename"]);
                         link.setAttribute('blob_folder', value);
+                        link.setAttribute('filetype', "zip");
                         link.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
                         link.setAttribute('processed_url',  table_row_dict["processed_url"])
+                        link.id = `td_span_${key}${i}`;
+                        link.className = 'download-btn';
+                        icon.className = 'fas fa-download';
+                        link.appendChild(icon);
+                        link.appendChild(text);
+                        cellContent = link;
+                    }
+                    break;
+                case "csv_url":
+                    if (update){
+                        const cell_update = document.getElementById(`td_span_${key}${i}`);
+                        if (cell_update){
+                            cell_update.setAttribute('filename', table_row_dict["filename"]);
+                            cell_update.setAttribute('filetype', "csv");
+                            cell_update.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
+                            cell_update.setAttribute('processed_url',  table_row_dict["csv_url"])
+                        }
+                    } else {
+                        const link = document.createElement('a');
+                        const icon = document.createElement('i');
+                        const text = document.createTextNode(' Download CSV');
+                        link.setAttribute('filename', table_row_dict["filename"]);
+                        link.setAttribute('filetype', "csv");
+                        link.setAttribute('container_name', table_row_dict["sas_token"]["container_name"])
+                        link.setAttribute('processed_url',  table_row_dict["csv_url"])
                         link.id = `td_span_${key}${i}`;
                         link.className = 'download-btn';
                         icon.className = 'fas fa-download';
@@ -332,19 +358,24 @@ export class TableManager {
                 
                 if (row_data.status === "Completed") {
                     rowElement.classList.remove('disabled');
-                    const downloadBtn = rowElement.querySelector('.download-btn');
-                    if (downloadBtn) {
-                        downloadBtn.disabled = false;
-                        downloadBtn.style.pointerEvents = 'auto';
-                        downloadBtn.style.opacity = '1';
+                    const downloadBtns = rowElement.querySelectorAll('.download-btn');
+                    if (downloadBtns) {
+                        downloadBtns.forEach((downloadBtn) => {
+                            downloadBtn.disabled = false;
+                            downloadBtn.style.pointerEvents = 'auto';
+                            downloadBtn.style.opacity = '1';
+                        });
                     }
                 } else {
                     rowElement.classList.add('disabled');
-                    const downloadBtn = rowElement.querySelector('.download-btn');
-                    if (downloadBtn) {
-                        downloadBtn.disabled = true;
-                        downloadBtn.style.pointerEvents = 'none';
-                        downloadBtn.style.opacity = '0.5';
+                    const downloadBtns = rowElement.querySelectorAll('.download-btn');
+                    if (downloadBtns) {
+                        downloadBtns.forEach((downloadBtn) => {
+                            // deleteUser(userItem);
+                            downloadBtn.disabled = true;
+                            downloadBtn.style.pointerEvents = 'none';
+                            downloadBtn.style.opacity = '0.5';
+                        });
                     }
                 }
             } else {

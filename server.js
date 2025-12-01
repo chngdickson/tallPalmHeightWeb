@@ -94,7 +94,7 @@ app.post('/api/getBlobToken2', async (req, res) => {
             
             res.json({ sas_url, container_name, blob_name });
         } else {
-            res.status(response.status).json({ error: 'Azure Function failed' });
+            res.status(http_response.status).json({ error: 'Azure Function failed' });
         }
         
     } catch (error) {
@@ -165,103 +165,37 @@ app.get(`/api/getQueries/:page`, async (req, res) => {
 	console.warn(`Page, ${page}`);
 });
 
-
-io.on('connection', (socket) => {
-    socket.on('download-zip', async (data, callback) => {
-		/* 
-		#### Frontend calls #####
-
-			socket = io();
-			socket.on('connect', () => {console.log('✅ Connected to server');});
-			socket.on('connect_error', (error) => {console.error('❌ Connection failed:', error);});
-			socket.on('zipping-progress', (data) => {console.log('Progress received:', data.percent);});
-			socket.on("zipChunk", base64Chunk => {chunks.push(Uint8Array.from(atob(base64Chunk), c => c.charCodeAt(0)));});
-			socket.emit('download-zip', { 
-				foldername: "processed/folderA"
-			}, (response) => {socket.disconnect();});
-		
-		#### Frontend calls #####
-		*/
-        try {
-			/**
-			#### Backend API calls #####
-
-				Socket to publish
-				socket.emit('zipping-progress', { percent });
-			
-			#### Backend API calls #####
-			*/
-			const {filename, blob_folder, processed_url} = data;
-				const http_response = await fetch(`${full_url}/api/getDownloadBlobToken/`, {
-				method: 'POST',
-                headers: { 
-					'Content-Type': 'application/json',
-					'x-functions-key': AZURE_FUNCTION_KEY
-				},
-				body: JSON.stringify({ processed_url: processed_url, filename: filename })
-			});
-			if (!http_response.ok){throw new Error(`Az Func get Blob Error`);}
-			
-			const response_json 	= await http_response.json();
-			const sas_token 		= response_json["sas_token"];
-			const blobClient = new BlockBlobClient(sas_token);
-
-			let zip_filename = `${filenameWithoutExtension(filename)}.zip`;
-			const output = fs.createWriteStream(zip_filename);
-			const passthrough = new PassThrough();
-
-			const response = await blobClient.download(0);
-			const properties = await blobClient.getProperties();
-			const readableStream = response.readableStreamBody;
-			// List Folders in Azure
-			let totalBytes = properties.contentLength;
-			let bytesProcessed = 0;
-			console.log(totalBytes);
-			
-			readableStream.pipe(passthrough).pipe(output);
-
-			
-			passthrough.on("data", chunk => {
-				// console.log("Chunk size:", chunk.length); // see small increments
-				bytesProcessed += chunk.length;
-				socket.emit("zipChunk", chunk.toString("base64"));
-				console.log((bytesProcessed/totalBytes)*95);
-				socket.emit('zipping-progress', { stage: "zipping", percent: (bytesProcessed/totalBytes)*95});
-			});
-			passthrough.on('warning', (err) => {
-				console.warn('Archive warning:', err);
-			});
-			passthrough.on('error', (err) => {
-				console.error('Archive error:', err);
-				if (!callback.headersSent) {callback({ ok: false, error: 'Archive error'});}
-			});
-			passthrough.on("finish", () => {
-				socket.emit('zipping-progress', { stage: "zipping", percent: 100});
-			});
-			output.on('close', () => {
-				// console.log(archive.pointer() + ' total bytes');
-				console.log('archiver has been finalized and the output file descriptor has closed.');
-				// socket.emit('zipping-progress', { stage: "zipping", percent: 100});
-			});
-
-			output.on('error', (err) => console.error(`Stream error for ${blobName}:`, err));
-			
-			console.log("all blobs are streamed");
-			// socket.emit('zipping-progress', { stage: "zipping", percent: 100});
-			// await passthrough.finalize();
-			await finished(output);
-			callback({ ok: true, data: response_json, zip_filename: zip_filename});
-            
-            
-        } catch (error) {
-			if (socket){
-				socket.disconnect();
-			}
-            console.error(error);
-            callback({ ok: false, error: error.message, zip_filename: null});
-        }
-		if (socket){socket.disconnect();}
-    });
+app.post(`/api/getDownloadToken`, async (req, res) => {
+    /* Frontend api : 
+		const response = await fetch(`/api/getDownloadToken`);
+	*/
+	const data = req.body;
+	console.log(`${full_url}/api/getDownloadBlobToken/`);
+	const http_response = await fetch(`${full_url}/api/getDownloadBlobToken/`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'x-functions-key': AZURE_FUNCTION_KEY
+		},
+		body: JSON.stringify({ 
+			processed_url	: data.processed_url, 
+			filename		: data.filename,
+			filetype		: data.filetype, 
+		})
+	});
+	if (!http_response.ok){throw new Error(`Az Func get Blob Error`);}
+	
+	const response_json 	= await http_response.json();
+    if (!http_response.ok) {
+		res.status(http_response.status).json({ error: 'Azure Function Download failed' });
+    }
+	else{
+		// res.status(True).json({ sas_token: sas_token, filename:filename});
+		res.json({
+			sas_token: response_json["sas_token"],
+			filename:response_json["filename"]
+		});
+	}
 });
 
 function filenameWithoutExtension(filename){
